@@ -32,21 +32,20 @@ whether or not the values referenced (either directly or indirectly) by that val
 The permutation of thw two properties result 4 genres of values:
 1. `{self_modifiable: true, ref_modifiable: false}`.
    No such Go values currently.
-   We call values of this genre as **both-immutable values**.
+   We call values of this genre as **ref-immutable values**.
 1. `{self_modifiable: true, ref_modifiable: true}`.
    Such as variables.
 1. `{self_modifiable: false, ref_modifiable: false}`.
    No such Go values currently.
-   We call values of this genre as **ref-immutable values**.
+   We call values of this genre as **both-immutable values**.
 1. `{self_modifiable: false, ref_modifiable: true}`.
    Such as composite literals.
    (In fact, all declared constants in JavaScript and all final variables decalred in Java belong to this genre.)
 
 This proposal will let Go support the two value genres the current Go doesn't support.
-Variables of the two new suuported genres are not declared with `var`, instead,
-* both-immutable values are declared with `var:0`.
+* Both-immutable values are declared with `var:0`.
   For example, the error values of many std package should be declared as both-immutable values.
-* ref-immutable values are declared with `var:1`.
+* Ref-immutable values are declared with `var:1`.
   For example, the parameters of a function which will not be modified within the function should be declared as ref-immutable.
 
 Please note, the number `1` and `0` means **mutable depth**.
@@ -100,7 +99,7 @@ void main() {
 }
 ```
 
-But, the following Go code is invalid.
+But, the following similar Go code is invalid.
 
 ```golang
 package main
@@ -147,7 +146,7 @@ var 1:x, 0:y, z = true, 789, "hello"
 Immutable parameter and result declaration examples:
 ```golang
 func Foo(m 1:http.Request, n 1:map[string]int) (o 1:[]int, p 1:chan int) {...}
-func Print(...1:interface{}) {...}
+func Print(values ...1:interface{}) {...}
 ```
 
 Short variable declaration examples:
@@ -238,7 +237,7 @@ A `func()(T)` value is assignable to a `func()(:T)` value, not vice versa.
 
 #### method sets
 
-**Every type has two method sets, one for mutable values, one for immutable values.**
+Every type has **two method sets**, one for mutable values, one for immutable values.
 The immutable one is a subset of the mutable one.
 For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly),
 then the immutable method set of `T` is a subset of the immutable method set of `*T`.
@@ -257,7 +256,7 @@ in the `fmt` standard package should be changed to `xyz ...1:interface{}` instea
 #### reflection
 
 Many function and method implementations in the `refect` package should be modified accordingly.
-The `refect.Value` type shoud have a **_immutable_** property,
+The `refect.Value` type shoud have an **_immutable_** property,
 and the result of an `Elem` method call should inherit the **_immutable_** property
 from the receiver argument. More about reflection.
 For all deails on reflection, please read the following reflection section.
