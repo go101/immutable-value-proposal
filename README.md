@@ -1,6 +1,6 @@
 # A Go immutable values proposal
 
-This proposal a re-written based on [an old one](https://github.com/golang/go/issues/29422).
+This proposal is a re-written based on [an old one](https://github.com/golang/go/issues/29422).
 The old proposal thread contains too many immature ideas to act as a formal proposal.
 The new one looks much more mature and clearner.
 
@@ -48,7 +48,7 @@ This proposal will let Go support the two value genres the current Go doesn't su
 * Ref-immutable values are declared with `var:1`.
   For example, the parameters of a function which will not be modified within the function should be declared as ref-immutable.
 
-Please note, the number `1` and `0` means **mutable depth**.
+Please note, the number `1` and `0` mean **mutable depth**s.
 
 **A both-immutable value must be bound a value in its declaration**.
 After the declaration, it can never be assigned any more.
@@ -79,10 +79,10 @@ The above listed in this section are the basic rules of this proposal.
 
 Please note, the immutability semantics in this proposal is different from the `const` semantics in C/C++.
 In C/C++, `const` is a type qualifier, however, immutability is a value property of Go.
-For example, a variable declared as `var:1 p ***T` is like a variable decalared as `T const * const * const * p` in C/C++.
-In C/C++, we can a variable as `T * const * const * x`, in Go, no ways to declare variables with the similar immutabilities.
+For example, a variable declared as `var:1 p ***int` is like a variable decalared as `int const * const * const * p` in C/C++.
+In C/C++, we can declare a variable as `int * const * const * x`, in Go, no ways to declare variables with the similar immutabilities.
 
-For example, the following C code are valid.
+Another example, the following C code are valid.
 ```C
 #include <stdio.h>
 
@@ -134,7 +134,7 @@ Some examples of the full variable declaration form:
 ```golang
 var:0 FileNotExist = errors.New("file not exist") // a both immutable variable
 
-// The following three declaration are equivalent.
+// The following three declarations are equivalent.
 var:1 a, b, c int
 var a, b, c 1:int
 var 1:a, 1:b, 1:c int
@@ -325,7 +325,7 @@ func ImmutableValueOf(i :interface{}) Value
 ```
 
 All parameters of type `reflect.Value` of the functions and methods in the `reflect` package,
-including receiver parameters, should be declared as ref-immutable values).
+including receiver parameters, should be declared as ref-immutable values.
 However, the `reflect.Value` return results should be declared as mutable.
 
 A `reflect.Value.ToImmutable` method is needed to convert a Value to an immutable one.
