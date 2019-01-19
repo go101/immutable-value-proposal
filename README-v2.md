@@ -1,16 +1,11 @@
-# A Go immutable types/values proposal
+# A Go immutable values proposal
 
 Old versions:
 * [the propsoal thread](https://github.com/golang/go/issues/29422).
 * [the `var:N` version](README-v1.md)
-* [the pure-immutable-value interpretation version](README-v2.md)
 
-This proposal introduces a notation `T.fixed` to represent the immutable version of type `T`,
-where `fixed` is new introduced keyword, which makes this proposal not Go 1 compatible.
-Please read the last section of this proposal for incompatible cases.
-
-In fact, we can use the old `const` keyword to replace the `fixed` keyword to make this prorposal Go 1 compatible.
-However, personally I think, for this specified proposal, the readibitly of `const` is not good as `fixed`. 
+The new syntax is not Go 1 compatible,
+please read the last section of this proposal for incompatible cases.
 
 To avoid syntax design complexity, the new proposal doesn't support declaring
 function parameters and results with property `{self_modifiable: false}` (see below).
@@ -22,7 +17,7 @@ Any criticisms and improvement ideas are welcome, for
 ### The problems this proposal tries to solve
 
 The problems this proposal tries to solve:
-1. no ways to declare package-level immutable non-basic values.
+1. no ways to declare package-level immutable non-basic variables.
 1. no ways to declare immutable function parameters and results.
 
 Please note, the immutability semantics in this proposal is different
@@ -57,34 +52,26 @@ by introducing a keyword, `fixed`.
 * `{self_modifiable: false, ref_modifiable: true}` values are declared with `fixed.var`.
 * The current supported variables are declard with `var.var`, which can be simplified as `var`.
 
-The notation `T.fixed` is introduced to represent the immutable version of type `T`.
-However, please note the semantics of **immutable type** in this proposal is different to many other immutable type proposals.
-A value of type `T.fixed` may be modifiable, it is just that the values referenced by the `T.fixed` value can't be modified.
-In othe words, values of type `T.fixed` can be either `var.fixed` values or `fixed.fixed` values.
-
 **A `fixed.*` value must be bound a value in its declaration**.
 After the declaration, it can never be assigned any more.
 
 Any value can be bound/assigned to a `*.fixed` value,
 including constants, literals, variables, and the new supported values by this propsoal.
 
-Generally, `*.fixed` values can't be bound/assigned to a `*.var` value, with one exception:
+`*.fixed` values can't be bound/assigned to a `*.var` value. However,
 `var.var` values of no-reference types (inclunding basic types, struct types with only fields of no-reference types
 and array type with no-reference element types) will be viewed as be viewed as `*.fixed` values when they are used
 as source values in assignments. (Maybe function types should be also viewed as no-reference types.)
 
-A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
-
-Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**, it
-**might be modified through other `*.var` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
+Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**,
+it **can be modified through other `*.var` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
 
 The above listed rules in this section are the basic rules of this proposal.
 
 Please note, the immutability semantics in this proposal is different from the `const` semantics in C/C++.
-For example, a value declared as `var.fixed p ***int` in this proposal is
-like a variable decalared as `int const * const * const * p` in C/C++.
-In C/C++, we can declare a variable as `int * const * const * x`, 
-in this proposal, no ways to declare variables with the similar immutabilities.
+In C/C++, `const` is a type qualifier, however, immutability is a value property of Go.
+For example, a value declared as `var.fixed p ***int` is like a variable decalared as `int const * const * const * p` in C/C++.
+In C/C++, we can declare a variable as `int * const * const * x`, in Go, no ways to declare variables with the similar immutabilities.
 
 Another example, the following C code are valid.
 ```C
@@ -103,7 +90,7 @@ void main() {
 }
 ```
 
-But, the following similar Go code is invalid by this proposal.
+But, the following similar Go code is invalid.
 
 ```golang
 package main
@@ -118,15 +105,16 @@ func main() {
 	var.fxied p *T = &t; // a value with property:
 	                     // {self_modifiable: true, ref_modifiable: false}
 	*p.y = 789;  // NOT allowed,
-	             // for all values referenced by p, either
-	             // directly or indirectly, are unmodifiable.
+	             // for all values referenced by p,
+	             // either directly or indirectly,
+	             // are not modifiable.
 	println(*t.y);
 }
 ```
 
 The section to the next will list the detailed rules for values of all kinds of types.
 Those rules are much straightforward and anticipated.
-**They are derived from the above mentioned basic rules.**
+**They are derived from the basic rules.**
 
 ### Syntax changes
 
@@ -166,8 +154,7 @@ Short value declaration examples:
 ```golang
 {
 	newA, newB, oldC := (var.fixed)(va), vb, vc
-	newA, newB, oldC := (?.fixed)(va), vb, vc
-	newA, newB, oldC := va.(fixed), vb, vc // equivalent to the above two lines
+	newA, newB, oldC := va.(fixed), vb, vc // equivalent to the above line
 	
 	newX, newY, oldZ := (Tx.fixed)(va), (Ty)(vb), vc
 	newX, newY, oldZ := (Tx)(va).(fixed), (Ty)(vb), vc // equivalent to the above line
@@ -245,10 +232,10 @@ A `func()(T)` value is assignable to a `func()(T.fixed)` value, not vice versa.
 
 #### method sets
 
-The method set of type `T.fixed` is a subset of type `T`.
-
+Every type has **two method sets**, one for `var.var` receiver values, one for `var.fixed` receiver values.
+The `var.fixed` one is a subset of the `var.var` one.
 For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly),
-then the method set of type `T.fixed` is a subset of type `*T.fixed`.
+then the `var.fixed` method set of `T` is a subset of the `var.fixed` method set of `*T`.
 
 #### interfaces
 
@@ -331,15 +318,13 @@ The other bit means whether or not the values referenced by the value can be mod
 
 ### New reflection functions and methods and how to implement them
 
-`reflect.Value` values can only representing `var.*` Go values.
-
 A `reflect.FixedValueOf` function is needed to create `reflect.Value` values representing `var.fixed` Go values.
 Its prototype is
 ```golang
 func FixedValueOf(i interface{}.fixed) Value
 ```
 
-In implementaion, one bit should be borrowed from the 23+ bits method number to represent the `fixed` proeprty.
+`reflect.Value` values can only representing `var.*` values.
 
 All parameters of type `reflect.Value` of the functions and methods in the `reflect` package,
 including receiver parameters, should be declared as `var.fixed` values.
@@ -350,7 +335,9 @@ A `reflect.Value.ToFixed` method is needed to convert a Value to a `var.fixed` o
 A `reflect.Value.FixedInterface` method is needed, it returns a `var.fixed` interface value.
 The old `Interface` method panics on `var.var` values.
 
-A method `reflect.Type.Fixed` is needed to get the immutable version of a type.
+Three methods `reflect.Type.NumFixedMethods`, `reflect.Type.FixedMethodByName` and `reflect.Type.FixedMethod` are needed.
+
+In implementaion, one bit should be borrowed from the 23+ bits method number to represent the `fixed` proeprty.
 
 ### Go 1 incompatible cases
 
@@ -360,7 +347,5 @@ Another migh-be-ambiguity case:
 assume a source file imports a package as `T` and if there is a type named `fixed` in the imported package,
 although a smart compiler will not mistake the `fixed` in `T.fixed` as a keyword, the `T.fixed` really hurts code readibilty.
 
-Using the old `const` keyword instead of the new `fixed` keyword can avoid these problems,
-however it would make people be confused with the current constant things.
-(Maybe, it is an acceptable solution.)
+Using the old `const` keyword instead of the new `fixed` keyword can avoid these problems, but will cause `const` pollution problem.
 
