@@ -242,7 +242,7 @@ then the `var.fixed` method set of `T` is a subset of the `var.fixed` method set
 * Box
   * No values can be boxed into `fixed.*` interface values.
   * `*.fixed` values can't be boxed into `var.var` interface values.
-  * Any values can be boxed into `var.fixed` interface values.
+  * Any values can be boxed into `var.fixed` interface values (**as long as the `var.fixed` method set of their respective types implement the interface**).
 * Assert
   * A type assertion on `*.fixed` interface value results an `*.fixed` value. (It is not important whether of not the result itself can be modified.)
   * A type assertion on `*.var` interface value results an `*.var` value. (It is not important whether of not the result itself can be modified.)
