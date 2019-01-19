@@ -248,14 +248,16 @@ A `func()(T)` value is assignable to a `func()(T.fixed)` value, not vice versa.
 The method set of type `T.fixed` is a subset of type `T`.
 
 For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly),
-then the method set of type `T.fixed` is a subset of type `*T.fixed`.
+the method set of type `T.fixed` is a subset of type `*T.fixed`.
 
 #### interfaces
 
 * Box
   * No values can be boxed into `fixed.*` interface values.
   * `*.fixed` values can't be boxed into `var.var` interface values.
-  * Any values can be boxed into `var.fixed` interface values (**as long as the `var.fixed` method set of their respective types implement the interface**).
+  * Any value can be boxed into a `var.fixed` interface value
+  (_as long as the method set of `T.fixed` implement the corresponding **mutable type** of the interface value_,
+  where `T` is the corresponding **mutable type** of the value to be boxed).
 * Assert
   * A type assertion on `*.fixed` interface value results an `*.fixed` value. (It is not important whether of not the result itself can be modified.)
   * A type assertion on `*.var` interface value results an `*.var` value. (It is not important whether of not the result itself can be modified.)
