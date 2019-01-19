@@ -169,8 +169,8 @@ For the same reason (to avoid syntax design complexity), `fixed.*` values can't 
 
 * Dereferences of `*.fixed` pointers are `fixed.fixed` values.
 * Dereferences of `*.var` pointers are `var.var` values.
-* Addresses of addressable `fixed.*` and `.fixed` values are `var.fixed` pointer values.
-  Some permission infotmation is lost when taking addresses of addressable `fixed.var` and `var.fixed` values.
+* Addresses of addressable `fixed.*` and `*.fixed` values are `var.fixed` pointer values.
+  Some certain write permissions are lost when taking addresses of addressable `fixed.var` and `var.fixed` values.
 
 #### unsafe pointers
 
