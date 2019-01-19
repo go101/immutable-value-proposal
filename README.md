@@ -50,7 +50,7 @@ by introducing a keyword, `fixed`.
 * `{self_modifiable: true, ref_modifiable: false}` values are declared with `var.fixed`.
   For example, the parameters of a function which will not be modified within the function should be declared with `var.fixed`.
 * `{self_modifiable: false, ref_modifiable: true}` values are declared with `fixed.var`.
-* The current supported variables are declard with `var.var`, which can simplified as `var`.
+* The current supported variables are declard with `var.var`, which can be simplified as `var`.
 
 **A `fixed.*` value must be bound a value in its declaration**.
 After the declaration, it can never be assigned any more.
@@ -118,7 +118,7 @@ Those rules are much straightforward and anticipated.
 
 ### Syntax changes
 
-It is a challenge to design a both simple and readable syntax set, for this proposal.
+It is a challenge to design a both simple and readable syntax set for this proposal.
 The current design may be not perfect, so any improvemnt ideas are welcome.
 
 Some examples of the full variable declaration form:
@@ -139,7 +139,7 @@ var.? a, b, c int.fixed
 
 // Declare variables in a hybrid way.
 var.? x, y = []int{}.(fixed), []int{} // x is a var.fixed value, y is a var.var value.
-fixed.? z, w []int = nil, nil.(fixed) // z is a fixed.var value, w is a fixed.var value.
+fixed.? z, w []int = nil, nil.(fixed) // z is a fixed.var value, w is a fixed.fixed value.
 ```
 
 Immutable parameter and result declaration examples:
