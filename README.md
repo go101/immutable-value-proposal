@@ -213,12 +213,10 @@ Channel rules are a little special.
 
 * Send
   * We can send any values to a `*.var` channel.
-  * No values can be sent to a `fixed.fixed` channel.
-  * We can only send `*.fixed` values to a `var.fixed` channel. (The speciality.)
+  * We can only send `*.fixed` values to a `*.fixed` channel. (The speciality.)
 * Receive
   * Receiving from a `*.var` channel results a `*.var` value. (It is not important whether of not the result itself can be modified.)
-  * No values can be received from a `fixed.fixed` channel.
-  * Receiving from a `var.fixed` channel results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
+  * Receiving from a `*.fixed` channel results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
 
 #### functions
 
