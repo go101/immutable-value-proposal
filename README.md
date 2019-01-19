@@ -61,7 +61,7 @@ including constants, literals, variables, and the new supported values by this p
 `*.fixed` values can't be bound/assigned to a `*.var` value. However,
 `var.var` values of no-reference types (inclunding basic types, struct types with only fields of no-reference types
 and array type with no-reference element types) will be viewed as be viewed as `*.fixed` values when they are used
-as source values in assignments.
+as source values in assignments. (Maybe function types should be also viewed as no-reference types.)
 
 Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**,
 it **can be modified through other `*.var` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
@@ -304,7 +304,7 @@ var s = "hello word"
 var.fixed bytes = []byte(s) // a clever compiler will not allocate a
                             // deplicate underlying byte sequence here.
 {
-	pw := &s[6] // pw is a `var.fixed` value
+	pw := &s[6] // pw is a `var.fixed` value of built-in type "byte".
 }
 ```
 
