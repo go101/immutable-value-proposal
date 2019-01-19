@@ -1,12 +1,14 @@
 # A Go immutable values proposal
 
-This proposal is a re-written based on [an old one](https://github.com/golang/go/issues/29422).
-The old proposal thread contains too many immature ideas to act as a formal proposal.
-The new one looks much more mature and clearner.
+Old versions:
+* [the propsoal thread](https://github.com/golang/go/issues/29422).
+* [the `var:N` version](README-v1.md)
 
-There is also an important different from the old propsoal.
-This new one uses `var:1` and `var:0`, instead of `fixed` and `fixed!` in the old one,
-to declare immutable variables, to try to be Go 1 compatible.
+The new syntax is not Go 1 compatible,
+please read the last section of this proposal for incompatible cases.
+
+To avoid syntax design complexity, the new proposal doesn't support declaring
+function parameters and results with property `{self_modifiable: false}` (see below).
 
 Any criticisms and improvement ideas are welcome, for
 * I have not much compiler-related knowledge, so the following designs may have flaws.
@@ -20,7 +22,7 @@ The problems this proposal tries to solve:
 
 Please note, the immutability semantics in this proposal is different
 from either the `const` values in C/C++ or in JavaScript.
-The following sections will explain the difference.
+The following sections will explain the differences.
 
 ### The main points of this proposal
 
@@ -30,56 +32,45 @@ This proposal will add a new value property `ref_modifiable` for each value, whi
 whether or not the values referenced (either directly or indirectly) by that value are modifiable.
 
 The permutation of thw two properties result 4 genres of values:
-1. `{self_modifiable: true, ref_modifiable: false}`.
-   No such Go values currently.
-   We call values of this genre as **ref-immutable values**.
 1. `{self_modifiable: true, ref_modifiable: true}`.
    Such as variables.
-1. `{self_modifiable: false, ref_modifiable: false}`.
+1. `{self_modifiable: true, ref_modifiable: false}`.
    No such Go values currently.
-   We call values of this genre as **both-immutable values**.
 1. `{self_modifiable: false, ref_modifiable: true}`.
    Such as composite literals.
    (In fact, all declared constants in JavaScript and all final variables decalred in Java belong to this genre.)
+1. `{self_modifiable: false, ref_modifiable: false}`.
+   No such Go values currently.
 
-This proposal will let Go support the two value genres the current Go doesn't support.
-* Both-immutable values are declared with `var:0`.
-  For example, the error values of many std package should be declared as both-immutable values.
-* Ref-immutable values are declared with `var:1`.
-  For example, the parameters of a function which will not be modified within the function should be declared as ref-immutable.
+This proposal will let Go support the two value genres the current Go doesn't support,
+and extend the range of `{self_modifiable: false, ref_modifiable: true}` values,
+by introducing a keyword, `fixed`.
+* `{self_modifiable: false, ref_modifiable: false}` values are declared with `fixed.fixed`.
+  For example, the error values of many std package should be declared  with `fixed.fixed`.
+* `{self_modifiable: true, ref_modifiable: false}` values are declared with `var.fixed`.
+  For example, the parameters of a function which will not be modified within the function should be declared with `var.fixed`.
+* `{self_modifiable: false, ref_modifiable: true}` values are declared with `fixed.var`.
+* The current supported variables are declard with `var.var`, which can simplified as `var`.
 
-Please note, the number `1` and `0` mean **mutable depth**s.
-
-**A both-immutable value must be bound a value in its declaration**.
+**A `fixed.*` value must be bound a value in its declaration**.
 After the declaration, it can never be assigned any more.
-Values of any genre can be bound to a both-immutable value,
-including constants, variable, literal, ref-immutable, or another both-immutable value.
 
-A ref-immutable value can be declared without an initial value.
-Same as both-immutable values, values of any genre can be assigned to a ref-immutable value,
-**including both-immutable values**.
+Any value can be bound/assigned to a `*.fixed` value,
+including constants, literals, variables, and the new supported values by this propsoal.
 
-When **_an immutable value_** is mentioned below, it means a both-immutable value or a ref-immutable value.
+`*.fixed` values can't be bound/assigned to a `*.var` value. However,
+`var.var` values of no-reference types (inclunding basic types, struct types with only fields of no-reference types
+and array type with no-reference element types) will be viewed as be viewed as `*.fixed` values when they are used
+as source values in assignments.
 
-Please note that, although a value **can't be modified through the (either both- or ref-) immutable values which are referencing it**,
-it **can be modified through other mutable values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
+Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**,
+it **can be modified through other `*.var` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
 
-There are three different design ideas for immutable-to-mutable assignments:
-1. **any such assignments are disallowed**. (The recommended design.)
-1. if the concrete type of the source value is a basic type (or any non-referencing type), then such an assignment is allowed.
-   In other words, values of such types declard with `var` should be treated as they are declared with `var:1`.
-   The reason is the *ref_modifiable* property is meaningless for values of such types.
-1. nilify all referencing in source values in such assignments.
-
-The second and third designs may be useful for some cases but they are easy to cause many confusions. (*Need to be proved.*)
-
-This following assume the first design idea for immutable-to-mutable assignments is adopted.
-
-The above listed in this section are the basic rules of this proposal.
+The above listed rules in this section are the basic rules of this proposal.
 
 Please note, the immutability semantics in this proposal is different from the `const` semantics in C/C++.
 In C/C++, `const` is a type qualifier, however, immutability is a value property of Go.
-For example, a variable declared as `var:1 p ***int` is like a variable decalared as `int const * const * const * p` in C/C++.
+For example, a value declared as `var.fixed p ***int` is like a variable decalared as `int const * const * const * p` in C/C++.
 In C/C++, we can declare a variable as `int * const * const * x`, in Go, no ways to declare variables with the similar immutabilities.
 
 Another example, the following C code are valid.
@@ -111,9 +102,10 @@ type T struct{
 func main() {
 	var a int = 123
 	var t = T{y: &a}
-	var:1 p *T = &t; // a ref-immutable variable
-	*p.y = 789;  // NOT allowed
-	             // All values referenced by p,
+	var.fxied p *T = &t; // a value with property:
+	                     // {self_modifiable: true, ref_modifiable: false}
+	*p.y = 789;  // NOT allowed,
+	             // for all values referenced by p,
 	             // either directly or indirectly,
 	             // are not modifiable.
 	println(*t.y);
@@ -126,138 +118,145 @@ Those rules are much straightforward and anticipated.
 
 ### Syntax changes
 
-This propsoal tries to make the new features be Go 1 compitable,
-which really brings a lot of challenges to the syntax design.
+It is a challenge to design a both simple and readable syntax set, for this proposal.
 The current design may be not perfect, so any improvemnt ideas are welcome.
 
 Some examples of the full variable declaration form:
 ```golang
-var:0 FileNotExist = errors.New("file not exist") // a both immutable variable
+fixed.fixed FileNotExist = errors.New("file not exist") // a totally immutable value
 
-// The following three declarations are equivalent.
-var:1 a, b, c int
-var a, b, c 1:int
-var 1:a, 1:b, 1:c int
+// The following declarations are equivalent.
+var.fixed a, b, c []int
+var.? a, b, c []int.fixed
+var.? a, b, c = []int(nil).(fixed), []int(nil).(fixed), []int(nil).(fixed)
+var.? a, b, c []int = nil.(fixed), nil.(fixed), nil.(fixed)
+
+// The following declarations are equivalent (for no-reference types only).
+var a, b, c int
+var.var a, b, c int
+var.fixed a, b, c int
+var.? a, b, c int.fixed
 
 // Declare variables in a hybrid way.
-var 1:x, 0:y, z = true, 789, "hello"
+var.? x, y = []int{}.(fixed), []int{} // x is a var.fixed value, y is a var.var value.
+fixed.? z, w []int = nil, nil.(fixed) // z is a fixed.var value, w is a fixed.var value.
 ```
 
 Immutable parameter and result declaration examples:
 ```golang
-func Foo(m 1:http.Request, n 1:map[string]int) (o 1:[]int, p 1:chan int) {...}
-func Print(values ...1:interface{}) {...}
+func Foo(m http.Request.fixed, n map[string]int.fixed) (o []int.fixed, p chan int.fixed) {...}
+func Print(values ...interface{}.fixed) {...}
 ```
+All parameters and results in the above example are `var.fixed` values.
+As above has mentioned, to avoid syntax design complexity, `fixed.*` parameters and results are not supported.
 
-Short variable declaration examples:
+Short value declaration examples:
 ```golang
 {
-	newA, newB, oldC := (var:1)(va), (var:0)(vb), vc
-	newA, newB, oldC := (:1)(va), (:0)(vb), vc // equivalent to the above line
-	newX, newY, oldZ := (1:Tx)(vx), (0:Ty)(vy), vz
+	newA, newB, oldC := va.(fixed), vb, vc
+	newA, newB, oldC := va.(fixed), vb, vc // equivalent to the above line
+	
+	newX, newY, oldZ := (Tx.fixed)(va), (Ty)(vb), vc
+	newX, newY, oldZ := (Tx)(va).(fixed), (Ty)(vb), vc // equivalent to the above line
 }
 ```
 
-I do have another idea by merging [the idea](https://github.com/golang/go/issues/377#issuecomment-66049402) into this proposal,
-but which will make this proposal Go 1 imcompatible. An example:
-```golang
-{
-	// NOTE: the assignment sign is "=" instead of ":=" here.
-	1:newA, 0:newB, oldC = va, vb, vc
-	1:newX, 0:newY, oldZ := Tx(vx), Ty(vy), vz
-}
-```
+For the same reason (to avoid syntax design complexity), `fixed.*` values can't be declared in short declarations.
 
 ### Detailed rules of this proposal
 
 #### safe pointers
 
-Dereferences of immutable pointers are both-immutable values.
-An immutable value may be addressable.
-Addressable immutable values can be taken addresses.
-Their addresses are ref-immutable pointer values.
+* Dereferences of `*.fixed` pointers are `fixed.fixed` values.
+* Dereferences of `*.var` pointers are `var.var` values.
+* Addresses of addressable `fixed.*` and `.fixed` values are `var.fixed` pointer values.
+  Some permission infotmation is lost when taking addresses of addressable `fixed.var` and `var.fixed` values.
 
 #### unsafe pointers
 
-Dereferences of an unsafe pointer are always mutable values,
-even if the unsafe pointer is immutable.
+* Dereferences of an unsafe pointer are always `var.var` values,
+even if the unsafe pointer is a `*.fixed` value.
 (This is important for refection implementation.)
 
 #### structs
 
-Fields of ref-immutable struct values are ref-immutable values.
-Fields of both-immutable struct values are both-immutable values.
+* Fields of `var.fixed` struct values are `var.fixed` values.
+* Fields of `fixed.fixed` struct values are `fixed.fixed` values.
+* Fields of `fixed.var` struct values are `fixed.var` values.
 
 #### arrays
 
-Elements of ref-immutable array values are ref-immutable values.
-Elements of both-immutable array values are both-immutable values.
+* Elements of `var.fixed` array values are `var.fixed` values.
+* Elements of `fixed.fixed` array values are `fixed.fixed` values.
+* Elements of `fixed.var` array values are `fixed.var` values.
 
 #### slices
 
-Elements of immutable slice values are both-immutable values.
-We can't append elements to immutable slice values.
-The subslice result of an immutable slice is still an immutable slice.
+* Elements of `*.fixed` slice values are `fixed.fixed` values.
+* Elements of `*.var` slice values are `var.var` values.
+* We can't append elements to `fixed.*` and `*.fixed` slice values.
+* Subslice:
+  * The subslice result of a `fixed.fixed` slice is still a `fixed.fixed` slice.
+  * The subslice result of a `fixed.var` slice is still a `fixed.var` slice.
+  * The subslice result of a `var.fixed` slice is still a `var.fixed` slice.
 
 #### maps
 
-Elements of immutable map values are both-immutable values.
-We can't append new entries to (or replace entries of,
-or delete old entries from) immutable map values.
+* Elements of `*.fixed` map values are `fixed.fixed` values.
+* Elements of `*.var` map values are `var.var` values.
+* We can't append new entries to (or replace entries of,
+  or delete old entries from) `*.fixed`  map values.
 
 #### channels
 
-We can send values to a ref-immutable channel.
-Receiving from a ref-immutable channel results an immutable value.
-Yes, we can send values to (and received values from) ref-immutable channels.
-However, we can't send immutable values to mutable channels,
-and we can't send values to (or receive values from) both-immutable channels.
+Channel rules are a little special.
+
+* Send
+  * We can send any values to a `*.var` channel.
+  * No values can be sent to a `fixed.fixed` channel.
+  * We can only send `*.fixed` values to a `var.fixed` channel. (The speciality.)
+* Receive
+  * Receiving from a `*.var` channel results a `*.var` value. (It is not important whether of not the result itself can be modified.)
+  * No values can be received from a `fixed.fixed` channel.
+  * Receiving from a `var.fixed` channel results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
 
 #### functions
 
-Function parameters and results can be declared as immutables
-(either ref-immutable or both-immutable), including receiver parameters.
-For the callers of a function, parameters/results declared as both-immutable
-have no differences from parameters/results declared as ref-immutable.
-For this reason, the mutable depth numbers can be omitted from function prototypes.
+Function parameters and results can be declared with property `{ref_modifiable: false}`.
 
-The prototypes of the following functions should be identical.
+In the following function proptotype, parameter `x` and result `w` are viewed as being declared with `var.fixed`.
 ```golang
-func fa(x 1:Tx, y 0:Ty) (z 0:Tz, w 1:Tw) {...}
-func fb(x 1:Tx, y 1:Ty) (z 1:Tz, w 1:Tw) {...}
+func fa(x Tx.fixed, y Ty) (z Tz, w Tw.fixed) {...}
 ```
 
-The type prototype of `fa` and `fb` can be denoted as
-```golang
-func (:Tx, :Ty) (:Tz, :Tw)
-```
-
-A `func(:T)` value is assignable to a `func(T)` value, not vice versa.
-A `func()(T)` value is assignable to a `func()(:T)` value, not vice versa.
+A `func(T.fixed)` value is assignable to a `func(T)` value, not vice versa.
+A `func()(T)` value is assignable to a `func()(T.fixed)` value, not vice versa.
 
 #### method sets
 
-Every type has **two method sets**, one for mutable values, one for immutable values.
-The immutable one is a subset of the mutable one.
+Every type has **two method sets**, one for `var.var` receiver values, one for `var.fixed` receiver values.
+The `var.fixed` one is a subset of the `var.var` one.
 For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly),
-then the immutable method set of `T` is a subset of the immutable method set of `*T`.
+then the `var.fixed` method set of `T` is a subset of the `var.fixed` method set of `*T`.
 
 #### interfaces
 
-Immutable values can't be boxed into a mutable interface value or a both-immutable interface value.
-They can only be boxed into ref-immutable interface values.
-A mutable value can also be boxed into an immutable interface values
-(**as long as the immutable method set of its type implements the interface**).
-A type assertion on an immutable interface value results an immutable value. 
+* Box
+  * No values can be boxed into `fixed.*` interface values.
+  * `*.fixed` values can't be boxed into `var.var` interface values.
+  * Any values can be boxed into `var.fixed` interface values.
+* Assert
+  * A type assertion on `*.fixed` interface value results an `*.fixed` value. (It is not important whether of not the result itself can be modified.)
+  * A type assertion on `*.var` interface value results an `*.var` value. (It is not important whether of not the result itself can be modified.)
 
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
-in the `fmt` standard package should be changed to `xyz ...1:interface{}` instead.
+in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
 
 #### reflection
 
 Many function and method implementations in the `refect` package should be modified accordingly.
-The `refect.Value` type shoud have an **_immutable_** property,
-and the result of an `Elem` method call should inherit the **_immutable_** property
+The `refect.Value` type shoud have an **_fixed_** property,
+and the result of an `Elem` method call should inherit the **_fixed_** property
 from the receiver argument. More about reflection.
 For all deails on reflection, please read the following reflection section.
 
@@ -265,44 +264,47 @@ For all deails on reflection, please read the following reflection section.
 
 ```golang
 var x = []int{1, 2, 3}
-var:1 y [][]int
+var.fixed y [][]int
 y = [][]int{x, x} // ok
 
-x[1] = 123     // ok
-y[0][1] = 123  // error
-var z = y[0]   // error
-var:1 z = y[0] // ok
-z[0] = 123     // error
+x[1] = 123         // ok
+y[0][1] = 123      // error
+var z = y[0]       // error
+var.fixed z = y[0] // ok
+z[0] = 123         // error
 
-// The following line <=> var:1 p = &z[0]
+// The following line <=> var.fixed p = &z[0]
 p := &z[0]     // ok. p is an immutable value.
 *p = 123       // error
 x[0] = *p      // ok
 p = new(int)   // ok
 
-var:1 v interface{} = y
-var w = v.([][]int)   // error
-var:1 w = v.([][]int) // ok
-v = x                 // ok
+var.fixed v interface{} = y
+var w = v.([][]int)       // error
+var.fixed w = v.([][]int) // ok
+v = x                     // ok
 
 // S is exported, but external packages have
 // no ways to modify x and S (through S).
-var:0 S = x     // ok.
-S = x            // error
-t := S[:]        // ok. <=> var:1 t =  s[:]
-_ = append(t, 4) // error
+fixed.fixed S = x // ok.
+S = x             // error
+t := S[:]         // ok. <=> var t = S[:].(fixed) <=> var.fixed t = S[:]
+_ = append(t, 4)  // error
 
 // The elements of R even can't be modified in current package!
-var:0 R = []int{7, 8, 9}
+fixed.fixed R = []int{7, 8, 9}
+
+// Q can't be modified, but its elements can.
+fixed.var Q = []int{7, 8, 9}
 ```
 
 Another one:
 ```golang
 var s = "hello word"
-var:1 bytes = []byte(s) // a clever compiler will not allocate a
-                        // deplicate underlying byte sequence here.
+var.fixed bytes = []byte(s) // a clever compiler will not allocate a
+                            // deplicate underlying byte sequence here.
 {
-	pw := &s[6] // pw is an immutable *byte pointer value
+	pw := &s[6] // pw is a `var.fixed` value
 }
 ```
 
@@ -318,21 +320,34 @@ The other bit means whether or not the values referenced by the value can be mod
 
 ### New reflection functions and methods and how to implement them
 
-A `reflect.ImmutableValueOf` function is needed to create `reflect.Value` values representing immutable Go values.
+A `reflect.FixedValueOf` function is needed to create `reflect.Value` values representing `var.fixed` Go values.
 Its prototype is
 ```golang
-func ImmutableValueOf(i :interface{}) Value
+func FixedValueOf(i interface{}.fixed) Value
 ```
 
+`reflect.Value` values can only representing `var.*` values.
+
 All parameters of type `reflect.Value` of the functions and methods in the `reflect` package,
-including receiver parameters, should be declared as ref-immutable values.
-However, the `reflect.Value` return results should be declared as mutable.
+including receiver parameters, should be declared as `var.fixed` values.
+However, the `reflect.Value` return results should be declared as `var.var` values.
 
-A `reflect.Value.ToImmutable` method is needed to convert a Value to an immutable one.
+A `reflect.Value.ToFixed` method is needed to convert a Value to a `var.fixed` one.
 
-A `reflect.Value.ImmutableInterface` method is needed, it returns an immutable interface value.
-The old `Interface` method panics on immutable values.
+A `reflect.Value.FixedInterface` method is needed, it returns a `var.fixed` interface value.
+The old `Interface` method panics on `var.var` values.
 
-Three methods `reflect.Type.NumImmutableMethods`, `reflect.Type.ImmutableMethodByName` and `reflect.Type.ImmutableMethod` are needed.
+Three methods `reflect.Type.NumFixedMethods`, `reflect.Type.FixedMethodByName` and `reflect.Type.FixedMethod` are needed.
 
-In implementaion, one bit should be borrowed from the 23+ bits method number to represent the `immutable` proeprty.
+In implementaion, one bit should be borrowed from the 23+ bits method number to represent the `fixed` proeprty.
+
+### Go 1 incompatible cases
+
+For now, we can use `fixed` and `fixed.fixed` to declare values, this proposal is not Go 1 compatible.
+
+Another migh-be-ambiguity case:
+assume a source file imports a package as `T` and if there is a type named `fixed` in the imported package,
+although a smart compiler will not mistake the `fixed` in `T.fixed` as a keyword, the `T.fixed` really hurts code readibilty.
+
+Using the old `const` keyword instead of the new `fixed` keyword can avoid these problems, but will cause `const` pollution problem.
+
