@@ -63,8 +63,8 @@ However, please note the semantics of **immutable type** in this proposal is dif
 A value of type `T.fixed` may be modifiable, it is just that the values referenced by the `T.fixed` value can't be modified.
 In othe words, values of type `T.fixed` can be either `var.fixed` values or `fixed.fixed` values.
 
-Please note that, `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
-`[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are invalid notations.
+Please note that, `[]*chan T.fixed` can only mean `([]*chan T).fixed`.
+Whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are invalid notations.
 
 A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
 The notation is called **immutability assertion**.
