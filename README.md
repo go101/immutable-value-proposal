@@ -235,8 +235,8 @@ Channel rules are a little special.
   * We can send any values to a `*.var` channel.
   * We can only send `*.fixed` values to a `*.fixed` channel. (The speciality.)
 * Receive
-  * Receiving from a `*.var` channel results a `*.var` value. (It is not important whether of not the result itself can be modified.)
-  * Receiving from a `*.fixed` channel results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
+  * Receiving from a `*.var` channel results a `*.var` value. (It is not important whether or not the result itself can be modified.)
+  * Receiving from a `*.fixed` channel results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
 
 #### functions
 
@@ -272,10 +272,10 @@ if type `T` is not an interface type.)
   (_as long as the method set of `T.fixed` implements the type of the interface value_,
   where `T` is the corresponding mutable type of the value to be boxed).
 * Assert
-  * A type assertion on a `*.fixed` interface value results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
+  * A type assertion on a `*.fixed` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
     For such an assertion, its syntax form `x.(T.fixed)` can be simplified as `x.(T)`.
-  * A type assertion on a `*.var` interface value results a `*.var` value. (It is not important whether of not the result itself can be modified.)
-  * An immutability assertion on a `*.var` interface value results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
+  * A type assertion on a `*.var` interface value results a `*.var` value. (It is not important whether or not the result itself can be modified.)
+  * An immutability assertion on a `*.var` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
     Such an assertion fails if the immutable version of the dynamic type of the interface value doesn't implement the type of the interface value.
 
 * Assume the asserted interface value is `x`, the asserted  and the asserted type `T` is a non-interface types, then the assertion form `x.(T.fixed)` is not allowed.
