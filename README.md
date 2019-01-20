@@ -67,7 +67,7 @@ Please note that, `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
 `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are invalid notations.
 
 A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
-The notation is called immutability assertion.
+The notation is called **immutability assertion**.
 If `v` is a non-interface values, `v.(fixed)` will always succeed.
 
 **A `fixed.*` value must be bound a value in its declaration**.
@@ -75,7 +75,7 @@ After the declaration, it can never be assigned any more.
 
 Generally, any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
 and the new supported values by this propsoal, with one exception: `*.var` interface values can't be assigned
-to `*.fixed` interface values. A `*.var` interface value can be immutability asserted to a `*.fixed` interface value.
+to `*.fixed` interface values. A `*.var` interface value can only be immutability asserted to a `*.fixed` interface value.
 (Please view the interface related rules section below for details.)
 
 Generally, `*.fixed` values can't be bound/assigned to a `*.var` value, with one exception:
