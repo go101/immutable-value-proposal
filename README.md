@@ -273,6 +273,7 @@ if type `T` is not an interface type.)
   where `T` is the corresponding mutable type of the value to be boxed).
 * Assert
   * A type assertion on a `*.fixed` interface value results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
+    For such an assertion syntax form `x.(T.fixed)`, it can be simplified as `x.(T)`.
   * A type assertion on a `*.var` interface value results a `*.var` value. (It is not important whether of not the result itself can be modified.)
   * An immutability assertion on a `*.var` interface value results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
     Such an assertion fails if the immutable version of the dynamic type of the interface value doesn't implement the type of the interface value.
