@@ -58,17 +58,22 @@ by introducing a keyword, `fixed`.
 * `{self_modifiable: false, ref_modifiable: true}` values are declared with `fixed.var`.
 * The current supported variables are declard with `var.var`, which can be simplified as `var`.
 
+The `var.` and `fixed.` are value properties, and the `.var` and `.fixed` are type qualifiers.
+
 The notation `T.fixed` is introduced to represent the immutable version of type `T`.
 However, please note the semantics of **immutable type** in this proposal is different to many other immutable type proposals.
 A value of type `T.fixed` may be modifiable, it is just that the values referenced by the `T.fixed` value can't be modified.
 In othe words, values of type `T.fixed` can be either `var.fixed` values or `fixed.fixed` values.
 
 Please note that, `[]*chan T.fixed` can only mean `([]*chan T).fixed`.
-Whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are invalid notations.
+Whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
 
 A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
 The notation is called **immutability assertion**.
 If `v` is a non-interface values, `v.(fixed)` will always succeed.
+This notation is mainly used in two situations:
+1. assert a `*.var` interface value to a `*.fixed` interface value.
+1. use `v` as the initial values for new declared values.
 
 **A `fixed.*` value must be bound a value in its declaration**.
 After the declaration, it can never be assigned any more.
@@ -85,8 +90,13 @@ as source values in assignments. (Maybe function types should be also viewed as 
 
 Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**, it
 **might be modified through other `*.var` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
+In other words, most of the rules in this proposal are enfored by compilers, not runtimes.
 
 The above listed rules in this section are the basic rules of this proposal.
+
+The section to the next will list the detailed rules for values of all kinds of types.
+Those rules are much straightforward and anticipated.
+**They are derived from the above mentioned basic rules.**
 
 Please note, the immutability semantics in this proposal is different from the `const` semantics in C/C++.
 For example, a value declared as `var.fixed p ***int` in this proposal is
@@ -132,16 +142,12 @@ func main() {
 }
 ```
 
-The section to the next will list the detailed rules for values of all kinds of types.
-Those rules are much straightforward and anticipated.
-**They are derived from the above mentioned basic rules.**
-
 ### Syntax changes
 
 It is a challenge to design a both simple and readable syntax set for this proposal.
 The current design may be not perfect, so any improvemnt ideas are welcome.
 
-Some examples of the full variable declaration form:
+Some examples of the full value declaration form:
 ```golang
 fixed.fixed FileNotExist = errors.New("file not exist") // a totally immutable value
 
@@ -181,8 +187,6 @@ Short value declaration examples:
 	newX, newY, oldZ := (Tx)(va).(fixed), (Ty)(vb), vc // equivalent to the above line
 }
 ```
-
-For the same reason (to avoid syntax design complexity), `fixed.*` values can't be declared in short declarations.
 
 ### Detailed rules of this proposal
 
@@ -370,6 +374,7 @@ A `reflect.Value.FixedInterface` method is needed, it returns a `var.fixed` inte
 The old `Interface` method panics on `var.var` values.
 
 A method `reflect.Type.Fixed` is needed to get the immutable version of a type.
+The immutable version of a type may have a different method set from the type.
 
 ### Go 1 incompatible cases
 
