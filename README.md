@@ -10,7 +10,8 @@ where `fixed` is new introduced keyword, which makes this proposal not Go 1 comp
 Please read the last section of this proposal for incompatible cases.
 
 In fact, we can use the old `const` keyword to replace the `fixed` keyword to make this prorposal Go 1 compatible.
-However, personally I think, for this specified proposal, the readibitly of `const` is not good as `fixed`. 
+However, personally I think, for this specified proposal, the readibitly of `const` is not good as `fixed`,
+though I feel `T.const` is also acceptable.
 
 To avoid syntax design complexity, the new proposal doesn't support declaring
 function parameters and results with property `{self_modifiable: false}` (see below).
@@ -62,8 +63,8 @@ However, please note the semantics of **immutable type** in this proposal is dif
 A value of type `T.fixed` may be modifiable, it is just that the values referenced by the `T.fixed` value can't be modified.
 In othe words, values of type `T.fixed` can be either `var.fixed` values or `fixed.fixed` values.
 
-Please note that, `[]*T.fixed` can only mean `([]*T).fixed`,
-`[]*(T.fixed)` and `[]((*T).fixed)` are invalid notations.
+Please note that, `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
+`[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are invalid notations.
 
 A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
 The notation is called immutability assertion.
@@ -73,9 +74,9 @@ If `v` is a non-interface values, `v.(fixed)` will always succeed.
 After the declaration, it can never be assigned any more.
 
 Generally, any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
-and the new supported values by this propsoal, with one exception: if the source value is a `*.var` interface value,
-and the immutable version of the dynamic type of the interface value doesn't implement the type of the interface value,
-then such as an assignment is disallowed. (We call this exception case as a failed immutability assertion.)
+and the new supported values by this propsoal, with one exception: `*.var` interface values can't be assigned
+to `*.fixed` interface values. A `*.var` interface value can be immutability asserted to a `*.fixed` interface value.
+(Please view the interface related rules section below for details.)
 
 Generally, `*.fixed` values can't be bound/assigned to a `*.var` value, with one exception:
 `var.var` values of no-reference types (inclunding basic types, struct types with only fields of no-reference types
