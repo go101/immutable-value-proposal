@@ -383,3 +383,7 @@ Using the old `const` keyword instead of the new `fixed` keyword can avoid these
 however it would make people be confused with the current constant things.
 (Maybe, it is an acceptable solution.)
 
+Another incompatible case is caused by the fact that `*.var` interface value can't be assigned `*.fixed` interface values.
+When the parameters of a function, such as the `fmt.Print` function, are changed to immutable types,
+then some old user code will fail to compile.
+But it should be easy for the `go fix` command to modify the corresponding arguments to immutability assertions.
