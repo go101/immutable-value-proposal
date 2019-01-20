@@ -249,6 +249,8 @@ The method set of type `T.fixed` is a subset of type `T`.
 
 For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly),
 the method set of type `T.fixed` is a subset of type `*T.fixed`.
+(Or in other words, the method set of type `T.fixed` is a subset of type `*T.fixed`
+if type `T` is not an interface type.)
 
 #### interfaces
 
@@ -256,7 +258,7 @@ the method set of type `T.fixed` is a subset of type `*T.fixed`.
   * No values can be boxed into `fixed.*` interface values.
   * `*.fixed` values can't be boxed into `var.var` interface values.
   * Any value can be boxed into a `var.fixed` interface value
-  (_as long as the method set of `T.fixed` implement the corresponding **mutable type** of the interface value_,
+  (_as long as the method set of `T.fixed` implements the corresponding **mutable type** of the interface value_,
   where `T` is the corresponding **mutable type** of the value to be boxed).
 * Assert
   * A type assertion on `*.fixed` interface value results an `*.fixed` value. (It is not important whether of not the result itself can be modified.)
