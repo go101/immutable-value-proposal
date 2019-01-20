@@ -278,9 +278,6 @@ if type `T` is not an interface type.)
   * An immutability assertion on a `*.var` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
     Such an assertion fails if the immutable version of the dynamic type of the interface value doesn't implement the type of the interface value.
 
-* Assume the asserted interface value is `x`, the asserted  and the asserted type `T` is a non-interface types, then the assertion form `x.(T.fixed)` is not allowed.
-
-
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
 
