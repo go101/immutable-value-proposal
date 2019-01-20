@@ -65,20 +65,22 @@ In othe words, values of type `T.fixed` can be either `var.fixed` values or `fix
 Please note that, `[]*T.fixed` can only mean `([]*T).fixed`,
 `[]*(T.fixed)` and `[]((*T).fixed)` are invalid notations.
 
+A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
+The notation is called immutability assertion.
+If `v` is a non-interface values, `v.(fixed)` will always succeed.
+
 **A `fixed.*` value must be bound a value in its declaration**.
 After the declaration, it can never be assigned any more.
 
 Generally, any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
 and the new supported values by this propsoal, with one exception: if the source value is a `*.var` interface value,
 and the immutable version of the dynamic type of the interface value doesn't implement the type of the interface value,
-then such as an assignment is disallowed.
+then such as an assignment is disallowed. (We call this exception case as a failed immutability assertion.)
 
 Generally, `*.fixed` values can't be bound/assigned to a `*.var` value, with one exception:
 `var.var` values of no-reference types (inclunding basic types, struct types with only fields of no-reference types
 and array type with no-reference element types) will be viewed as be viewed as `*.fixed` values when they are used
 as source values in assignments. (Maybe function types should be also viewed as no-reference types.)
-
-A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
 
 Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**, it
 **might be modified through other `*.var` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
@@ -260,15 +262,20 @@ if type `T` is not an interface type.)
 
 #### interfaces
 
+* Dynamic type
+  * The dynamic type of a `*.var` interface value is a mutable type.
+  * The dynamic type of a `*.fixed` interface value is an immutable type.
 * Box
   * No values can be boxed into `fixed.*` interface values.
   * `*.fixed` values can't be boxed into `var.var` interface values.
   * Any value can be boxed into a `var.fixed` interface value
-  (_as long as the method set of `T.fixed` implements the corresponding **mutable type** of the interface value_,
-  where `T` is the corresponding **mutable type** of the value to be boxed).
+  (_as long as the method set of `T.fixed` implements the type of the interface value_,
+  where `T` is the corresponding mutable type of the value to be boxed).
 * Assert
-  * A type assertion on `*.fixed` interface value results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
-  * A type assertion on `*.var` interface value results a `*.var` value. (It is not important whether of not the result itself can be modified.)
+  * A type assertion on a `*.fixed` interface value results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
+  * A type assertion on a `*.var` interface value results a `*.var` value. (It is not important whether of not the result itself can be modified.)
+  * An immutability assertion on a `*.var` interface value results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
+    Such an assertion fails if the immutable version of the dynamic type of the interface value doesn't implement the type of the interface value.
 
 * Assume the asserted interface value is `x`, the asserted  and the asserted type `T` is a non-interface types, then the assertion form `x.(T.fixed)` is not allowed.
 
