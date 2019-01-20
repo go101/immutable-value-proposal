@@ -373,12 +373,10 @@ A method `reflect.Type.Fixed` is needed to get the immutable version of a type.
 
 ### Go 1 incompatible cases
 
-For now, we can use `fixed` and `fixed.fixed` to declare values, this proposal is not Go 1 compatible.
-
-Another migh-be-ambiguity case:
-assume a source file imports a package as `T` and if there is a type named `fixed` in the imported package,
+The new keyword `fixed` is one cause why this proposal is not Go 1 compatible.
+Assume a source file imports a package as `T` and if there is a type named `fixed` in the imported package,
 although a smart compiler will not mistake the `fixed` in `T.fixed` as a keyword, the `T.fixed` really hurts code readibilty.
-
+ 
 Using the old `const` keyword instead of the new `fixed` keyword can avoid these problems,
 however it would make people be confused with the current constant things.
 (Maybe, it is an acceptable solution.)
