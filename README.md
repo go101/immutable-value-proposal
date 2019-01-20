@@ -58,10 +58,10 @@ by introducing a keyword, `fixed`.
 * `{self_modifiable: false, ref_modifiable: true}` values are declared with `fixed.var`.
 * The current supported variables are declard with `var.var`, which can be simplified as `var`.
 
-The `var.` and `fixed.` are value properties, and the `.var` and `.fixed` are type qualifiers.
+The `var.` and `fixed.` are value qualifiers, and the `.var` and `.fixed` are type qualifiers.
 
 The notation `T.fixed` is introduced to represent the immutable version of type `T`.
-However, please note the semantics of **immutable type** in this proposal is different to many other immutable type proposals.
+However, please note the semantics of **immutable type** in this proposal is different from many other immutable type proposals.
 A value of type `T.fixed` may be modifiable, it is just that the values referenced by the `T.fixed` value can't be modified.
 In othe words, values of type `T.fixed` can be either `var.fixed` values or `fixed.fixed` values.
 
