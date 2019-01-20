@@ -62,11 +62,16 @@ However, please note the semantics of **immutable type** in this proposal is dif
 A value of type `T.fixed` may be modifiable, it is just that the values referenced by the `T.fixed` value can't be modified.
 In othe words, values of type `T.fixed` can be either `var.fixed` values or `fixed.fixed` values.
 
+Please note that, `[]*T.fixed` can only mean `([]*T).fixed`,
+`[]*(T.fixed)` and `[]((*T).fixed)` are invalid notations.
+
 **A `fixed.*` value must be bound a value in its declaration**.
 After the declaration, it can never be assigned any more.
 
-Any value can be bound/assigned to a `*.fixed` value,
-including constants, literals, variables, and the new supported values by this propsoal.
+Generally, any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
+and the new supported values by this propsoal, with one exception: if the source value is a `*.var` interface value,
+and the immutable version of the dynamic type of the interface value doesn't implement the type of the interface value,
+then such as an assignment is disallowed.
 
 Generally, `*.fixed` values can't be bound/assigned to a `*.var` value, with one exception:
 `var.var` values of no-reference types (inclunding basic types, struct types with only fields of no-reference types
@@ -246,10 +251,11 @@ A `func()(T)` value is assignable to a `func()(T.fixed)` value, not vice versa.
 #### method sets
 
 The method set of type `T.fixed` is a subset of type `T`.
+If `T` is an interface type, then the method sets of `T.fixed` and `T` are always identical.
 
 For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly),
 the method set of type `T.fixed` is a subset of type `*T.fixed`.
-(Or in other words, the method set of type `T.fixed` is a subset of type `*T.fixed`
+(Or in other words, the method set of type `T` is a subset of type `*T`
 if type `T` is not an interface type.)
 
 #### interfaces
@@ -261,8 +267,11 @@ if type `T` is not an interface type.)
   (_as long as the method set of `T.fixed` implements the corresponding **mutable type** of the interface value_,
   where `T` is the corresponding **mutable type** of the value to be boxed).
 * Assert
-  * A type assertion on `*.fixed` interface value results an `*.fixed` value. (It is not important whether of not the result itself can be modified.)
-  * A type assertion on `*.var` interface value results an `*.var` value. (It is not important whether of not the result itself can be modified.)
+  * A type assertion on `*.fixed` interface value results a `*.fixed` value. (It is not important whether of not the result itself can be modified.)
+  * A type assertion on `*.var` interface value results a `*.var` value. (It is not important whether of not the result itself can be modified.)
+
+* Assume the asserted interface value is `x`, the asserted  and the asserted type `T` is a non-interface types, then the assertion form `x.(T.fixed)` is not allowed.
+
 
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
