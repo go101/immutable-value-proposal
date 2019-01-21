@@ -386,6 +386,13 @@ The method sets of mutable type `T` and immutable type `T.fixed` may be differen
 
 A method `reflect.Type.Genre` is needed, it may return `Fixed` or `Mutable`.
 
+### Unsolved and new prolbems of this proposal
+
+This proposal doesn't guarantee some values referenced by `*.fixed` values will never be modified.
+
+This proposal will make `bytes.TrimXXX` functions need some duplicate version for mutable and immutable arguments.
+This problem should be solved by future possible generics feature.
+
 ### Go 1 incompatible cases
 
 The followings are the incompatible cases I'm aware now.
