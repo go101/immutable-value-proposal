@@ -4,7 +4,7 @@ Old versions:
 * [the propsoal thread](https://github.com/golang/go/issues/29422).
 * [the `var:N` version](README-v1.md)
 * [the pure-immutable-value interpretation version](README-v2.md)
-* [the [var|fixed].[var|fixed] version](README-v3.md)
+* [the immutable-type interpretation version](README-v3.md)
 
 
 This proposal not Go 1 compatible. Please read the last section of this proposal for incompatible cases.
