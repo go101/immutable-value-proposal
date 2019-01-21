@@ -4,10 +4,17 @@ Old versions:
 * [the propsoal thread](https://github.com/golang/go/issues/29422).
 * [the `var:N` version](README-v1.md)
 * [the pure-immutable-value interpretation version](README-v2.md)
-* [the [var|fixed].[var|fixed] version](README-v3.md)
 
+This proposal introduces a notation `T.fixed` to represent the immutable version of type `T`,
+where `fixed` is new introduced keyword, which makes this proposal not Go 1 compatible.
+Please read the last section of this proposal for incompatible cases.
 
-This proposal not Go 1 compatible. Please read the last section of this proposal for incompatible cases.
+In fact, we can use the old `const` keyword to replace the `fixed` keyword to make this prorposal Go 1 compatible.
+However, personally I think, for this specified proposal, the readibitly of `const` is not good as `fixed`,
+though I feel `T.const` is also acceptable.
+
+To avoid syntax design complexity, the new proposal doesn't support declaring
+function parameters and results with property `{self_modifiable: false}` (see below).
 
 Any criticisms and improvement ideas are welcome, for
 * I have not much compiler-related knowledge, so the following designs may have flaws.
@@ -41,56 +48,48 @@ The permutation of thw two properties result 4 genres of values:
 1. `{self_modifiable: false, ref_modifiable: false}`.
    No such Go values currently.
 
-This proposal treats the `self_modifiable` as a direct value property,
-and treats `ref_modifiable` as a type property (an indirect value property).
-
 This proposal will let Go support the two value genres the current Go doesn't support,
-and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
-* `{self_modifiable: true}` values are declared with `var`.
-* `{self_modifiable: false}` values are declared with `const`.
-   Please note that, although a `const` value itself can't be modified,
-   the values referenced by the `const` value might be modifiable.
+and extend the range of `{self_modifiable: false, ref_modifiable: true}` values,
+by introducing a keyword, `fixed`.
+* `{self_modifiable: false, ref_modifiable: false}` values are declared with `fixed.fixed`.
+  For example, the error values of many std package should be declared  with `fixed.fixed`.
+* `{self_modifiable: true, ref_modifiable: false}` values are declared with `var.fixed`.
+  For example, the parameters of a function which will not be modified within the function should be declared with `var.fixed`.
+* `{self_modifiable: false, ref_modifiable: true}` values are declared with `fixed.var`.
+* The current supported variables are declard with `var.var`, which can be simplified as `var`.
 
-Types with property `{ref_modifiable: false}` are called immutable types.
-The notation `T.fixed` is introduced to represent the immutable version of mutable type `T`,
-where `fixed` is a new introduced keyword.
-Please note the semantics of **immutable type** in this proposal is different from many other immutable type proposals.
+The `var.` and `fixed.` are value qualifiers, and the `.var` and `.fixed` are type qualifiers.
+
+The notation `T.fixed` is introduced to represent the immutable version of type `T`.
+However, please note the semantics of **immutable type** in this proposal is different from many other immutable type proposals.
 A value of type `T.fixed` may be modifiable, it is just that the values referenced by the `T.fixed` value can't be modified.
+In othe words, values of type `T.fixed` can be either `var.fixed` values or `fixed.fixed` values.
 
-Below, the proposal will call
-* `T` values declared with `var` as `var.mutable` values.
-* `T` values declared with `const` as `const.mutable` values.
-* `T.fixed` values declared with `var` as `var.fixed` values.
-* `T.fixed` values declared with `const` as `const.fixed` values.
-
-Please note that,
-* the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
-  whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
-* the respective immutable types of no-reference types (inclunding basic types, struct types with only fields
-  of no-reference types and array type with no-reference element types) are themselves.
+Please note that, `[]*chan T.fixed` can only mean `([]*chan T).fixed`.
+Whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
 
 A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
 The notation is called **immutability assertion**.
 If `v` is a non-interface values, `v.(fixed)` will always succeed.
 This notation is mainly used in two situations:
-1. assert a `*.mutable` interface value to a `*.fixed` interface value.
+1. assert a `*.var` interface value to a `*.fixed` interface value.
 1. use `v` as the initial values for new declared values.
 
-**A `const.*` value must be bound a value in its declaration**.
+**A `fixed.*` value must be bound a value in its declaration**.
 After the declaration, it can never be assigned any more.
 
 Generally, any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
-and the new supported values by this propsoal, with one exception: **`*.mutable` interface values can't be assigned
-to `*.fixed` interface values**. A `*.mutable` interface value can only be
-**immutability asserted** to a `*.fixed` interface value.
+and the new supported values by this propsoal, with one exception: `*.var` interface values can't be assigned
+to `*.fixed` interface values. A `*.var` interface value can only be immutability asserted to a `*.fixed` interface value.
 (Please view the interface related rules section below for details.)
 
-Generally, `*.fixed` values can't be bound/assigned to a `*.mutable` value, with one exception:
-`*.mutable` values of no-reference types will be viewed as be viewed as `*.fixed` values when they are used
+Generally, `*.fixed` values can't be bound/assigned to a `*.var` value, with one exception:
+`var.var` values of no-reference types (inclunding basic types, struct types with only fields of no-reference types
+and array type with no-reference element types) will be viewed as be viewed as `*.fixed` values when they are used
 as source values in assignments. (Maybe function types should be also viewed as no-reference types.)
 
 Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**, it
-**might be modified through other `*.mutable` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
+**might be modified through other `*.var` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
 In other words, most of the rules in this proposal are enfored by compilers, not runtimes.
 
 The above listed rules in this section are the basic rules of this proposal.
@@ -100,9 +99,9 @@ Those rules are much straightforward and anticipated.
 **They are derived from the above mentioned basic rules.**
 
 Please note, the immutability semantics in this proposal is different from the `const` semantics in C/C++.
-For example, a value declared as `var p ***int.fixed` in this proposal is
+For example, a value declared as `var.fixed p ***int` in this proposal is
 like a variable decalared as `int const * const * const * p` in C/C++.
-In C/C++, we can declare a variable as `int * const * const * x`,
+In C/C++, we can declare a variable as `int * const * const * x`, 
 in this proposal, no ways to declare variables with the similar immutabilities.
 
 Another example, the following C code are valid.
@@ -134,7 +133,7 @@ type T struct{
 func main() {
 	var a int = 123
 	var t = T{y: &a}
-	var p *T.fixed = &t; // a value with property:
+	var.fxied p *T = &t; // a value with property:
 	                     // {self_modifiable: true, ref_modifiable: false}
 	*p.y = 789;  // NOT allowed,
 	             // for all values referenced by p, either
@@ -150,21 +149,23 @@ The current design may be not perfect, so any improvemnt ideas are welcome.
 
 Some examples of the full value declaration form:
 ```golang
-const FileNotExist = errors.New("file not exist").(fixed) // a totally immutable value
-const FileNotExist .fixed = errors.New("file not exist")  // equivalent to the above line
+fixed.fixed FileNotExist = errors.New("file not exist") // a totally immutable value
 
 // The following declarations are equivalent.
-var a, b, c []int.fixed
-var a, b, c .fixed = []int(nil), []int(nil), []int(nil)
-var a, b, c = []int(nil).(fixed), []int(nil).(fixed), []int(nil).(fixed)
+var.fixed a, b, c []int
+var.? a, b, c []int.fixed
+var.? a, b, c = []int(nil).(fixed), []int(nil).(fixed), []int(nil).(fixed)
+var.? a, b, c []int = nil.(fixed), nil.(fixed), nil.(fixed)
 
 // The following declarations are equivalent (for no-reference types only).
 var a, b, c int
-var a, b, c int.fixed
+var.var a, b, c int
+var.fixed a, b, c int
+var.? a, b, c int.fixed
 
 // Declare variables in a hybrid way.
-var x, y = []int{}.(fixed), []int{} // x is a var.fixed value, y is a var.mutable value.
-const z, w []int = nil, nil.(fixed) // z is a const.mutable value, w is a const.fixed value.
+var.? x, y = []int{}.(fixed), []int{} // x is a var.fixed value, y is a var.var value.
+fixed.? z, w []int = nil, nil.(fixed) // z is a fixed.var value, w is a fixed.fixed value.
 ```
 
 Immutable parameter and result declaration examples:
@@ -173,65 +174,61 @@ func Foo(m http.Request.fixed, n map[string]int.fixed) (o []int.fixed, p chan in
 func Print(values ...interface{}.fixed) {...}
 ```
 All parameters and results in the above example are `var.fixed` values.
-To avoid syntax design complexity, `const.*` parameters and results are not supported.
+As above has mentioned, to avoid syntax design complexity, `fixed.*` parameters and results are not supported.
 
 Short value declaration examples:
 ```golang
 {
-	newA, newB, oldC := va.(fixed), vb, vc
-
+	newA, newB, oldC := (var.fixed)(va), vb, vc
+	newA, newB, oldC := (?.fixed)(va), vb, vc
+	newA, newB, oldC := va.(fixed), vb, vc // equivalent to the above two lines
+	
 	newX, newY, oldZ := (Tx.fixed)(va), (Ty)(vb), vc
-	newX, newY, oldZ := (Tx(va).(fixed), (Ty)(vb), vc
-	newX, newY, oldZ := Tx(va.(fixed)), (Ty)(vb), vc // equivalent to the above two lines
+	newX, newY, oldZ := (Tx)(va).(fixed), (Ty)(vb), vc // equivalent to the above line
 }
 ```
-
-Again, to avoid syntax design complexity, `const.*` values can't be declared in short declartions.
-In other words, values declared in short declarations are always `var.*` values.
 
 ### Detailed rules of this proposal
 
 #### safe pointers
 
-* Dereferences of `*.fixed` pointers are `const.fixed` values.
-* Dereferences of `*.mutable` pointers are `var.mutable` values.
-* Addresses of addressable `const.*` and `*.fixed` values are `var.fixed` pointer values.
-  Some certain write permissions are lost when taking addresses of addressable `const.mutable` and `var.fixed` values.
-
-Yes, `const.*` non-basic values can be taken addresses.
+* Dereferences of `*.fixed` pointers are `fixed.fixed` values.
+* Dereferences of `*.var` pointers are `var.var` values.
+* Addresses of addressable `fixed.*` and `*.fixed` values are `var.fixed` pointer values.
+  Some certain write permissions are lost when taking addresses of addressable `fixed.var` and `var.fixed` values.
 
 #### unsafe pointers
 
-* Dereferences of an unsafe pointer are always `var.mutable` values,
+* Dereferences of an unsafe pointer are always `var.var` values,
 even if the unsafe pointer is a `*.fixed` value.
 (This is important for refection implementation.)
 
 #### structs
 
 * Fields of `var.fixed` struct values are `var.fixed` values.
-* Fields of `const.fixed` struct values are `const.fixed` values.
-* Fields of `const.mutable` struct values are `const.mutable` values.
+* Fields of `fixed.fixed` struct values are `fixed.fixed` values.
+* Fields of `fixed.var` struct values are `fixed.var` values.
 
 #### arrays
 
 * Elements of `var.fixed` array values are `var.fixed` values.
-* Elements of `const.fixed` array values are `const.fixed` values.
-* Elements of `const.mutable` array values are `const.mutable` values.
+* Elements of `fixed.fixed` array values are `fixed.fixed` values.
+* Elements of `fixed.var` array values are `fixed.var` values.
 
 #### slices
 
-* Elements of `*.fixed` slice values are `const.fixed` values.
-* Elements of `*.mutable` slice values are `var.mutable` values.
-* We can't append elements to `const.*` and `*.fixed` slice values.
+* Elements of `*.fixed` slice values are `fixed.fixed` values.
+* Elements of `*.var` slice values are `var.var` values.
+* We can't append elements to `fixed.*` and `*.fixed` slice values.
 * Subslice:
-  * The subslice result of a `const.fixed` slice is still a `const.fixed` slice.
-  * The subslice result of a `const.mutable` slice is still a `const.mutable` slice.
+  * The subslice result of a `fixed.fixed` slice is still a `fixed.fixed` slice.
+  * The subslice result of a `fixed.var` slice is still a `fixed.var` slice.
   * The subslice result of a `var.fixed` slice is still a `var.fixed` slice.
 
 #### maps
 
-* Elements of `*.fixed` map values are `const.fixed` values.
-* Elements of `*.mutable` map values are `var.mutable` values.
+* Elements of `*.fixed` map values are `fixed.fixed` values.
+* Elements of `*.var` map values are `var.var` values.
 * We can't append new entries to (or replace entries of,
   or delete old entries from) `*.fixed`  map values.
 
@@ -240,10 +237,10 @@ even if the unsafe pointer is a `*.fixed` value.
 Channel rules are a little special.
 
 * Send
-  * We can send any values to a `*.mutable` channel.
+  * We can send any values to a `*.var` channel.
   * We can only send `*.fixed` values to a `*.fixed` channel. (The speciality.)
 * Receive
-  * Receiving from a `*.mutable` channel results a `*.mutable` value. (It is not important whether or not the result itself can be modified.)
+  * Receiving from a `*.var` channel results a `*.var` value. (It is not important whether or not the result itself can be modified.)
   * Receiving from a `*.fixed` channel results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
 
 #### functions
@@ -271,19 +268,19 @@ if type `T` is not an interface type.)
 #### interfaces
 
 * Dynamic type
-  * The dynamic type of a `*.mutable` interface value is a mutable type.
+  * The dynamic type of a `*.var` interface value is a mutable type.
   * The dynamic type of a `*.fixed` interface value is an immutable type.
 * Box
-  * No values can be boxed into `const.*` interface values.
-  * `*.fixed` values can't be boxed into `var.mutable` interface values.
+  * No values can be boxed into `fixed.*` interface values.
+  * `*.fixed` values can't be boxed into `var.var` interface values.
   * Any value can be boxed into a `var.fixed` interface value
   (_as long as the method set of `T.fixed` implements the type of the interface value_,
   where `T` is the corresponding mutable type of the value to be boxed).
 * Assert
   * A type assertion on a `*.fixed` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
     For such an assertion, its syntax form `x.(T.fixed)` can be simplified as `x.(T)`.
-  * A type assertion on a `*.mutable` interface value results a `*.mutable` value. (It is not important whether or not the result itself can be modified.)
-  * An immutability assertion on a `*.mutable` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
+  * A type assertion on a `*.var` interface value results a `*.var` value. (It is not important whether or not the result itself can be modified.)
+  * An immutability assertion on a `*.var` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
     Such an assertion fails if the immutable version of the dynamic type of the interface value doesn't implement the type of the interface value.
 
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
@@ -301,43 +298,44 @@ For all deails on reflection, please read the following reflection section.
 
 ```golang
 var x = []int{1, 2, 3}
-var y [][]int.fixed
+var.fixed y [][]int
 y = [][]int{x, x} // ok
 
-x[1] = 123    // ok
-y[0][1] = 123 // error, for y is a var.fixed value.
-var z = y[0]  // ok, z is also a var.fixed value.
-z[0] = 123    // error
+x[1] = 123         // ok
+y[0][1] = 123      // error
+var z = y[0]       // error
+var.fixed z = y[0] // ok
+z[0] = 123         // error
 
-p := &z[0]     // ok. p is a var.fixed value.
+// The following line <=> var.fixed p = &z[0]
+p := &z[0]     // ok. p is an immutable value.
 *p = 123       // error
 x[0] = *p      // ok
 p = new(int)   // ok
 
-var v interface{} = y       // error
-var v interface{}.fixed = y // ok
-var w = v.([][]int)         // ok, w is a var.fixed value
-v = x                       // ok
-var u = v.(fixed)           // ok, u is a var.fixed value
+var.fixed v interface{} = y
+var w = v.([][]int)       // error
+var.fixed w = v.([][]int) // ok
+v = x                     // ok
 
 // S is exported, but external packages have
 // no ways to modify x and S (through S).
-const S = x.fixed // ok.
+fixed.fixed S = x // ok.
 S = x             // error
-t := S[:]         // ok, t is a var.fixed value. S[:] is a const.fixed value.
+t := S[:]         // ok. <=> var t = S[:].(fixed) <=> var.fixed t = S[:]
 _ = append(t, 4)  // error
 
 // The elements of R even can't be modified in current package!
-const R = []int{7, 8, 9}.fixed
+fixed.fixed R = []int{7, 8, 9}
 
 // Q can't be modified, but its elements can.
-const Q = []int{7, 8, 9}
+fixed.var Q = []int{7, 8, 9}
 ```
 
 Another one:
 ```golang
 var s = "hello word"
-var bytes = []byte.fixed(s) // a clever compiler will not allocate a
+var.fixed bytes = []byte(s) // a clever compiler will not allocate a
                             // deplicate underlying byte sequence here.
 {
 	pw := &s[6] // pw is a `var.fixed` value of built-in type "byte".
@@ -368,27 +366,27 @@ In implementaion, one bit should be borrowed from the 23+ bits method number to 
 
 All parameters of type `reflect.Value` of the functions and methods in the `reflect` package,
 including receiver parameters, should be declared as `var.fixed` values.
-However, the `reflect.Value` return results should be declared as `var.mutable` values.
+However, the `reflect.Value` return results should be declared as `var.var` values.
 
 A `reflect.Value.ToFixed` method is needed to convert a Value to a `var.fixed` one.
 
 A `reflect.Value.FixedInterface` method is needed, it returns a `var.fixed` interface value.
-The old `Interface` method panics on `var.mutable` values.
+The old `Interface` method panics on `var.var` values.
 
-A method `reflect.Type.Fixed` is needed to get the immutable version of a mutable type.
-A method `reflect.Type.Mutable` is needed to get the mutable version of an immutable type.
-The method sets of mutable type `T` and immutable type `T.fixed` may be different if `T` is not an interface type.
-
-A method `reflect.Type.Genre` is needed, it may return `Fixed` or `Mutable`.
+A method `reflect.Type.Fixed` is needed to get the immutable version of a type.
+The immutable version of a type may have a different method set from the type.
 
 ### Go 1 incompatible cases
 
-The followings are the incompatible cases I'm aware now.
-1. If a type `T` has a method called `fixed`, then `T.fixed` is incompatible with the propsoal.
-   It should be easy for the `go fix` command to fix the incompatible case by modifying the method name to another one.
-1. Another incompatible case is caused by the fact that `*.mutable` interface value can't be assigned to `*.fixed` interface values.
-   When the parameters of a function, such as the `fmt.Print` function, are changed to immutable types,
-   then some old user code will fail to compile.
-   But it should be easy for the `go fix` command to modify the corresponding arguments to immutability assertions.
+The new keyword `fixed` is one cause why this proposal is not Go 1 compatible.
+Assume a source file imports a package as `T` and if there is a type named `fixed` in the imported package,
+although a smart compiler will not mistake the `fixed` in `T.fixed` as a keyword, the `T.fixed` really hurts code readibilty.
+ 
+Using the old `const` keyword instead of the new `fixed` keyword can avoid these problems,
+however it would make people be confused with the current constant things.
+(Maybe, it is an acceptable solution.)
 
-
+Another incompatible case is caused by the fact that `*.var` interface value can't be assigned `*.fixed` interface values.
+When the parameters of a function, such as the `fmt.Print` function, are changed to immutable types,
+then some old user code will fail to compile.
+But it should be easy for the `go fix` command to modify the corresponding arguments to immutability assertions.
