@@ -76,28 +76,25 @@ This notation is mainly used in two situations:
 1. assert a `*.mutable` interface value to a `*.fixed` interface value.
 1. use `v` as the initial values for new declared values.
 
-**A `const.*` value must be bound a value in its declaration**.
-After the declaration, it can never be assigned any more.
-
-Generally, any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
-and the new supported values by this propsoal, with one exception: **`*.mutable` interface values can't be assigned
-to `*.fixed` interface values**. A `*.mutable` interface value can only be
-**immutability asserted** to a `*.fixed` interface value.
-(Please view the interface related rules section below for details.)
-
-Generally, `*.fixed` values can't be bound/assigned to a `*.mutable` value, with one exception:
-`*.mutable` values of no-reference types will be viewed as be viewed as `*.fixed` values when they are used
-as source values in assignments. (Maybe function types should be also viewed as no-reference types.)
+The **basic assignment/bounding rules**:
+1. **A `const.*` value must be bound a value in its declaration**.
+   After the declaration, it can never be assigned any more.
+1. Generally, any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
+   and the new supported values by this propsoal, with one exception: **`*.mutable` interface values can't be assigned
+   to `*.fixed` interface values**. A `*.mutable` interface value can only be
+   **immutability asserted** to a `*.fixed` interface value.
+   (Please view the interface related rules section below for details.)
+1. Generally, `*.fixed` values can't be bound/assigned to a `*.mutable` value, with one exception:
+   `*.mutable` values of no-reference types will be viewed as be viewed as `*.fixed` values when they are used
+   as source values in assignments. (Maybe function types should be also viewed as no-reference types.)
 
 Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**, it
 **might be modified through other `*.mutable` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
 In other words, most of the rules in this proposal are enfored by compilers, not runtimes.
 
-The above listed rules in this section are the basic rules of this proposal.
-
 The section to the next will list the detailed rules for values of all kinds of types.
 Those rules are much straightforward and anticipated.
-**They are derived from the above mentioned basic rules.**
+**They are derived from the above mentioned basic assignment/bounding rules.**
 
 Please note, the immutability semantics in this proposal is different from the `const` semantics in C/C++.
 For example, a value declared as `var p ***int.fixed` in this proposal is
@@ -386,11 +383,11 @@ The method sets of mutable type `T` and immutable type `T.fixed` may be differen
 
 A method `reflect.Type.Genre` is needed, it may return `Fixed` or `Mutable`.
 
-### Unsolved and new prolbems of this proposal
+### Unsolved and new problems of this proposal
 
 This proposal doesn't guarantee some values referenced by `*.fixed` values will never be modified.
 
-This proposal will make `bytes.TrimXXX` functions need some duplicate version for mutable and immutable arguments.
+This proposal will make `bytes.TrimXXX` functions need some duplicate versions for mutable and immutable arguments.
 This problem should be solved by future possible generics feature.
 
 ### Go 1 incompatible cases
