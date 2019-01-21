@@ -386,13 +386,14 @@ A method `reflect.Type.Genre` is needed, it may return `Fixed` or `Mutable`.
 ### Unsolved and new problems of this proposal
 
 This proposal doesn't guarantee some values referenced by `*.fixed` values will never be modified.
+(This is more a feature than a problem.)
 
 This proposal will make `bytes.TrimXXX` functions need some duplicate versions for mutable and immutable arguments.
 This problem should be solved by future possible generics feature.
 
 ### Go 1 incompatible cases
 
-The followings are the incompatible cases I'm aware now.
+The followings are the incompatible cases I'm aware of now.
 1. If a type `T` has a method called `fixed`, then `T.fixed` is incompatible with the propsoal.
    It should be easy for the `go fix` command to fix the incompatible case by modifying the method name to another one.
 1. Another incompatible case is caused by the fact that `*.mutable` interface value can't be assigned to `*.fixed` interface values.
