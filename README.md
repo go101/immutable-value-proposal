@@ -178,11 +178,13 @@ To avoid syntax design complexity, `const.*` parameters and results are not supp
 Short value declaration examples:
 ```golang
 {
-	newA, newB, oldC := va.(fixed), vb, vc
+	oldA, newB := va, vb.(fixed)
+	oldA, newB := va, (.fixed)(vb)
 
-	newX, newY, oldZ := (Tx.fixed)(va), (Ty)(vb), vc
-	newX, newY, oldZ := (Tx(va).(fixed), (Ty)(vb), vc
-	newX, newY, oldZ := Tx(va.(fixed)), (Ty)(vb), vc // equivalent to the above two lines
+	newX, oldY := (Tx.fixed)(va), vy
+	newX, oldY := (Tx(va)).(fixed), vy
+	newX, oldY := Tx(va.(fixed)), vy
+	newX, oldY := Tx(va).(fixed), vy // equivalent to the above three lines
 }
 ```
 
@@ -199,6 +201,7 @@ In other words, values declared in short declarations are always `var.*` values.
   Some certain write permissions are lost when taking addresses of addressable `const.mutable` and `var.fixed` values.
 
 Yes, `const.*` non-basic values can be taken addresses.
+(Maybe it is good to also relax the rule for  `const.*` basic values, or not.)
 
 #### unsafe pointers
 
@@ -285,6 +288,8 @@ if type `T` is not an interface type.)
   * A type assertion on a `*.mutable` interface value results a `*.mutable` value. (It is not important whether or not the result itself can be modified.)
   * An immutability assertion on a `*.mutable` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
     Such an assertion fails if the immutable version of the dynamic type of the interface value doesn't implement the type of the interface value.
+    Failed assertion results a nil `*.fixed` interface value and an optional second untyped bool which indicates whether the assetsion succeeds.
+    Failed assertion with the second optional result absent will panic.
 
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
@@ -318,7 +323,7 @@ var v interface{} = y       // error
 var v interface{}.fixed = y // ok
 var w = v.([][]int)         // ok, w is a var.fixed value
 v = x                       // ok
-var u = v.(fixed)           // ok, u is a var.fixed value
+var u = v.(fixed)           // ok, assertion succeeds. u is a var.fixed value
 
 // S is exported, but external packages have
 // no ways to modify x and S (through S).
