@@ -76,7 +76,7 @@ This notation is mainly used in two situations:
 1. assert a `*.mutable` interface value to a `*.fixed` interface value.
 1. use `v` as the initial values for new declared values.
 
-The **basic assignment/bounding rules**:
+The **basic assignment/binding rules**:
 1. **A `const.*` value must be bound a value in its declaration**.
    After the declaration, it can never be assigned any more.
 1. Generally, any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
@@ -176,7 +176,7 @@ Short value declaration examples:
 ```golang
 {
 	oldA, newB := va, vb.(fixed)
-	oldA, newB := va, (.fixed)(vb)
+	oldA, newB := va, (.fixed)(vb) // equivalent to the above line
 
 	newX, oldY := (Tx.fixed)(va), vy
 	newX, oldY := (Tx(va)).(fixed), vy
