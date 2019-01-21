@@ -67,7 +67,7 @@ Please note that,
 * the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
   whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
 * the respective immutable types of no-reference types (inclunding basic types, struct types with only fields
-  of no-reference types and array type with no-reference element types) are themselves.
+  of no-reference types and array type with no-reference element types) are the mutable types themselves.
 
 A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
 The notation is called **immutability assertion**.
@@ -154,13 +154,13 @@ const FileNotExist = errors.New("file not exist").(fixed) // a totally immutable
 const FileNotExist .fixed = errors.New("file not exist")  // equivalent to the above line
 
 // The following declarations are equivalent.
-var a, b, c []int.fixed
-var a, b, c .fixed = []int(nil), []int(nil), []int(nil)
-var a, b, c = []int(nil).(fixed), []int(nil).(fixed), []int(nil).(fixed)
+var a []int.fixed
+var a .fixed = []int(nil)
+var a = []int(nil).(fixed)
 
 // The following declarations are equivalent (for no-reference types only).
-var a, b, c int
-var a, b, c int.fixed
+var b int
+var b int.fixed
 
 // Declare variables in a hybrid way.
 var x, y = []int{}.(fixed), []int{} // x is a var.fixed value, y is a var.mutable value.
