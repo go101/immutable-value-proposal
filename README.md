@@ -66,7 +66,7 @@ Below, the proposal will call
 Please note that,
 * the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
   whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
-* the respective immutable types of no-reference types (inclunding basic types, struct types with only fields
+* the respective immutable types of no-reference types (including basic types, struct types with only fields
   of no-reference types and array type with no-reference element types) are the mutable types themselves.
 
 A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
@@ -74,7 +74,8 @@ The notation is called **immutability assertion**.
 If `v` is a non-interface values, `v.(fixed)` will always succeed.
 This notation is mainly used in two situations:
 1. assert a `*.mutable` interface value to a `*.fixed` interface value.
-1. use `v` as the initial values for new declared `*.fixed` values.
+1. use `v.fixed` as the initial values for new declared values so that
+  compilers can deduce the new declared values are `.fixed` values.
 
 The **basic assignment/binding rules**:
 1. **A `const.*` value must be bound a value in its declaration**.
@@ -286,8 +287,9 @@ if type `T` is not an interface type.)
   * A type assertion on a `*.mutable` interface value results a `*.mutable` value. (It is not important whether or not the result itself can be modified.)
   * An immutability assertion on a `*.mutable` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
     Such an assertion fails if the immutable version of the dynamic type of the interface value doesn't implement the type of the interface value.
-    Failed assertion results a nil `*.fixed` interface value and an optional second untyped bool which indicates whether the assetsion succeeds.
-    Failed assertion with the second optional result absent will panic.
+    Same as type assertions, an immutability assertion may return an optional second untyped bool which indicates whether the assetsion succeeds.
+    An failed assertion results a nil `*.fixed` interface value.
+    An failed assertion with the second optional result missing will panic.
 
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
@@ -298,7 +300,7 @@ Many function and method implementations in the `refect` package should be modif
 The `refect.Value` type shoud have an **_fixed_** property,
 and the result of an `Elem` method call should inherit the **_fixed_** property
 from the receiver argument. More about reflection.
-For all deails on reflection, please read the following reflection section.
+For all details on reflection, please read the following reflection section.
 
 ### Usage examples
 
