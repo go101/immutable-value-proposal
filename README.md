@@ -1,7 +1,7 @@
 # A Go immutable types/values proposal
 
 Old versions:
-* [the propsoal thread](https://github.com/golang/go/issues/29422).
+* [the proposal thread](https://github.com/golang/go/issues/29422).
 * [the `var:N` version](README-v1.md)
 * [the pure-immutable-value interpretation version](README-v2.md)
 * [the immutable-type interpretation version](README-v3.md)
@@ -74,18 +74,19 @@ The notation is called **immutability assertion**.
 If `v` is a non-interface values, `v.(fixed)` will always succeed.
 This notation is mainly used in two situations:
 1. assert a `*.mutable` interface value to a `*.fixed` interface value.
-1. use `v` as the initial values for new declared values.
+1. use `v` as the initial values for new declared `*.fixed` values.
 
 The **basic assignment/binding rules**:
 1. **A `const.*` value must be bound a value in its declaration**.
    After the declaration, it can never be assigned any more.
 1. Generally, any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
-   and the new supported values by this propsoal, with one exception: **`*.mutable` interface values can't be assigned
+   and the new supported values by this proposal, with one exception: **`*.mutable` interface values can't be assigned
    to `*.fixed` interface values**. A `*.mutable` interface value can only be
    **immutability asserted** to a `*.fixed` interface value.
    (Please view the interface related rules section below for details.)
+1. `*.mutable` values can be bound/assigned to a `*.mutable` value.
 1. Generally, `*.fixed` values can't be bound/assigned to a `*.mutable` value, with one exception:
-   `*.mutable` values of no-reference types will be viewed as be viewed as `*.fixed` values when they are used
+   `*.fixed` values of no-reference types will be viewed as be viewed as `*.mutable` values when they are used
    as source values in assignments. (Maybe function types should be also viewed as no-reference types.)
 
 Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**, it
@@ -274,7 +275,7 @@ if type `T` is not an interface type.)
   * The dynamic type of a `*.mutable` interface value is a mutable type.
   * The dynamic type of a `*.fixed` interface value is an immutable type.
 * Box
-  * No values can be boxed into `const.*` interface values.
+  * No values can be boxed into `const.*` interface values (except the initial bound values).
   * `*.fixed` values can't be boxed into `var.mutable` interface values.
   * Any value can be boxed into a `var.fixed` interface value
   (_as long as the method set of `T.fixed` implements the type of the interface value_,
@@ -330,7 +331,7 @@ t := S[:]         // ok, t is a var.fixed value. S[:] is a const.fixed value.
 _ = append(t, 4)  // error
 
 // The elements of R even can't be modified in current package!
-const R = []int{7, 8, 9}.fixed
+const R = []int{7, 8, 9}.(fixed)
 
 // Q can't be modified, but its elements can.
 const Q = []int{7, 8, 9}
@@ -394,8 +395,9 @@ This problem should be solved by future possible generics feature.
 ### Go 1 incompatible cases
 
 The followings are the incompatible cases I'm aware of now.
-1. If a type `T` has a method called `fixed`, then `T.fixed` is incompatible with the propsoal.
+1. If a type `T` has a method called `fixed`, then `T.fixed` is incompatible with the proposal.
    It should be easy for the `go fix` command to fix the incompatible case by modifying the method name to another one.
+   Other places where `fixed` is used as identifiers should be also renamed.
 1. Another incompatible case is caused by the fact that `*.mutable` interface value can't be assigned to `*.fixed` interface values.
    When the parameters of a function, such as the `fmt.Print` function, are changed to immutable types,
    then some old user code will fail to compile.
