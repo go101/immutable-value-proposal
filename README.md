@@ -68,7 +68,7 @@ Please note that,
 * the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
   whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
 * the respective immutable types of no-reference types (including basic types, struct types with only fields
-  of no-reference types and array type with no-reference element types) are the mutable types themselves.
+  of no-reference types and array types with no-reference element types) are the mutable types themselves.
 
 A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
 The notation is called **immutability assertion**.
@@ -76,7 +76,7 @@ If `v` is a non-interface values, `v.(fixed)` will always succeed.
 This notation is mainly used in two situations:
 1. assert a `*.mutable` interface value to a `*.fixed` interface value.
 1. use `v.fixed` as the initial values for new declared values so that
-  compilers can deduce the new declared values are `.fixed` values.
+  compilers can deduce the new declared values are `*.fixed` values.
 
 The **basic assignment/binding rules**:
 1. **A `const.*` value must be bound a value in its declaration**.
@@ -398,12 +398,10 @@ This problem should be solved by future possible generics feature.
 ### Go 1 incompatible cases
 
 The followings are the incompatible cases I'm aware of now.
-1. If a type `T` has a method called `fixed`, then `T.fixed` is incompatible with the proposal.
-   It should be easy for the `go fix` command to fix the incompatible case by modifying the method name to another one.
-   Other places where `fixed` is used as identifiers should be also renamed.
+1. `fixed` may be used as an non-exported identifier in old user code.
+   It should be easy for the `go fix` command to modify these uses to others.
 1. Another incompatible case is caused by the fact that `*.mutable` interface value can't be assigned to `*.fixed` interface values.
    When the parameters of a function, such as the `fmt.Print` function, are changed to immutable types,
    then some old user code will fail to compile.
    But it should be easy for the `go fix` command to modify the corresponding arguments to immutability assertions.
-
 
