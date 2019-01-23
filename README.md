@@ -50,6 +50,7 @@ and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
 * `{self_modifiable: false}` values are declared with `const`.
    Please note that, although a `const` value itself can't be modified,
    the values referenced by the `const` value might be modifiable.
+   (This is the same as JavaScropt const variables and Java final variables.)
 
 Types with property `{ref_modifiable: false}` are called immutable types.
 The notation `T.fixed` is introduced to represent the immutable version of mutable type `T`,
@@ -102,7 +103,7 @@ Please note, the immutability semantics in this proposal is different from the `
 For example, a value declared as `var p ***int.fixed` in this proposal is
 like a variable decalared as `int const * const * const * p` in C/C++.
 In C/C++, we can declare a variable as `int * const * const * x`,
-in this proposal, no ways to declare variables with the similar immutabilities.
+but there are no ways to declare variables with the similar immutabilities in this proposal.
 
 Another example, the following C code are valid.
 ```C
@@ -327,10 +328,10 @@ var u = v.(fixed)           // ok, assertion succeeds. u is a var.fixed value
 
 // S is exported, but external packages have
 // no ways to modify x and S (through S).
-const S = x.fixed // ok.
-S = x             // error
-t := S[:]         // ok, t is a var.fixed value. S[:] is a const.fixed value.
-_ = append(t, 4)  // error
+const S = x.(fixed) // ok.
+S = x               // error
+t := S[:]           // ok, t is a var.fixed value. S[:] is a const.fixed value.
+_ = append(t, 4)    // error
 
 // The elements of R even can't be modified in current package!
 const R = []int{7, 8, 9}.(fixed)
