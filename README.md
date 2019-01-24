@@ -67,6 +67,7 @@ Below, the proposal will call
 Please note that,
 * the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
   whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
+* `fixed` is not allowed to appear in type declarations. `type T []int.fixed` is invalid.
 * the respective immutable types of no-reference types (including basic types, struct types with only fields
   of no-reference types and array types with no-reference element types) are the mutable types themselves.
 
@@ -97,13 +98,14 @@ In other words, most of the rules in this proposal are enfored by compilers, not
 
 The section to the next will list the detailed rules for values of all kinds of types.
 Those rules are much straightforward and anticipated.
-**They are derived from the above mentioned basic assignment/bounding rules.**
+**They are derived from the above mentioned basic assignment/binding rules.**
 
 Please note, the immutability semantics in this proposal is different from the `const` semantics in C/C++.
 For example, a value declared as `var p ***int.fixed` in this proposal is
 like a variable decalared as `int const * const * const * p` in C/C++.
 In C/C++, we can declare a variable as `int * const * const * x`,
 but there are no ways to declare variables with the similar immutabilities in this proposal.
+(In other words, this proposal assumes such use cases are rare in practice.)
 
 Another example, the following C code are valid.
 ```C
@@ -155,16 +157,19 @@ const FileNotExist .fixed = errors.New("file not exist")  // equivalent to the a
 
 // The following declarations are equivalent.
 var a []int.fixed
-var a .fixed = []int(nil)
-var a = []int(nil).(fixed)
+var a .fixed = []int{1, 2, 3}
+var a = []int{1, 2, 3}.(fixed)
 
 // The following declarations are equivalent (for no-reference types only).
 var b int
 var b int.fixed
 
 // Declare variables in a hybrid way.
-var x, y = []int{}.(fixed), []int{} // x is a var.fixed value, y is a var.mutable value.
-const z, w []int = nil, nil.(fixed) // z is a const.mutable value, w is a const.fixed value.
+
+// x is a var.fixed value, y is a var.mutable value.
+var x, y = []int{1, 2}.(fixed), []int{1, 2}
+// z is a const.mutable value, w is a const.fixed value.
+const z, w []int = []int{1, 2}, []int{1, 2}.(fixed)
 ```
 
 Immutable parameter and result declaration examples:
@@ -295,6 +300,8 @@ if type `T` is not an interface type.)
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
 
+Note, type assertion and immutibility assertion can combine
+
 #### reflection
 
 Many function and method implementations in the `refect` package should be modified accordingly.
@@ -384,6 +391,7 @@ The old `Interface` method panics on `var.mutable` values.
 A method `reflect.Type.Fixed` is needed to get the immutable version of a mutable type.
 A method `reflect.Type.Mutable` is needed to get the mutable version of an immutable type.
 The method sets of mutable type `T` and immutable type `T.fixed` may be different if `T` is not an interface type.
+Their respective other properties should be identical.
 
 A method `reflect.Type.Genre` is needed, it may return `Fixed` or `Mutable`.
 
@@ -392,14 +400,16 @@ A method `reflect.Type.Genre` is needed, it may return `Fixed` or `Mutable`.
 This proposal doesn't guarantee some values referenced by `*.fixed` values will never be modified.
 (This is more a feature than a problem.)
 
-This proposal will make `bytes.TrimXXX` functions need some duplicate versions for mutable and immutable arguments.
+This proposal will make `bytes.TrimXXX` (and some others) functions need some duplicate versions
+for mutable and immutable arguments.
 This problem should be solved by future possible generics feature.
 
 ### Go 1 incompatible cases
 
 The followings are the incompatible cases I'm aware of now.
-1. `fixed` may be used as an non-exported identifier in old user code.
+1. `fixed` may be used as non-exported identifiers in old user code.
    It should be easy for the `go fix` command to modify these uses to others.
+   (Using `const` to replace `fixed` can avoid this incompatible case, but may cause some confusions.)
 1. Another incompatible case is caused by the fact that `*.mutable` interface value can't be assigned to `*.fixed` interface values.
    When the parameters of a function, such as the `fmt.Print` function, are changed to immutable types,
    then some old user code will fail to compile.
