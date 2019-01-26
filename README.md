@@ -76,7 +76,7 @@ The notation is called **immutability assertion**.
 If `v` is a non-interface values, `v.(fixed)` will always succeed.
 This notation is mainly used in two situations:
 1. assert a `*.mutable` interface value to a `*.fixed` interface value.
-1. use `v.fixed` as the initial values for new declared values so that
+1. use `v.(fixed)` as the initial values for new declared values so that
   compilers can deduce the new declared values are `*.fixed` values.
 
 The **basic assignment/binding rules**:
