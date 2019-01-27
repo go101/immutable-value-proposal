@@ -44,6 +44,8 @@ The permutation of thw two properties result 4 genres of values:
 This proposal treats the `self_modifiable` as a direct value property,
 and treats `ref_modifiable` as a type property (an indirect value property).
 
+(Note, in fact, we can catagory declared function values into either the 3rd or the 4th genre.)
+
 This proposal will let Go support the two value genres the current Go doesn't support,
 and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
 * `{self_modifiable: true}` values are declared with `var`.
@@ -95,8 +97,6 @@ The **basic assignment/binding rules**:
 Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**, it
 **might be modified through other `*.mutable` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
 In other words, most of the rules in this proposal are enfored by compilers, not runtimes.
-
-(Note, in fact, we can catagory declared function values into either the 3rd or the 4th genre.)
 
 The section to the next will list the detailed rules for values of all kinds of types.
 Those rules are much straightforward and anticipated.
