@@ -96,6 +96,8 @@ Please note that, although a value **can't be modified through `*.fixed` values 
 **might be modified through other `*.mutable` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
 In other words, most of the rules in this proposal are enfored by compilers, not runtimes.
 
+(Note, in fact, we can catagory declared function values into either the 3rd or the 4th genre.)
+
 The section to the next will list the detailed rules for values of all kinds of types.
 Those rules are much straightforward and anticipated.
 **They are derived from the above mentioned basic assignment/binding rules.**
