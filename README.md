@@ -41,10 +41,10 @@ The permutation of thw two properties result 4 genres of values:
 1. `{self_modifiable: false, ref_modifiable: false}`.
    No such Go values currently.
 
+(Note, in fact, we can catagory declared function values into either the 3rd or the 4th genre.)
+
 This proposal treats the `self_modifiable` as a direct value property,
 and treats `ref_modifiable` as a type property (an indirect value property).
-
-(Note, in fact, we can catagory declared function values into either the 3rd or the 4th genre.)
 
 This proposal will let Go support the two value genres the current Go doesn't support,
 and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
