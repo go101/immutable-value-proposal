@@ -302,8 +302,6 @@ if type `T` is not an interface type.)
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
 
-Note, type assertion and immutibility assertion can combine
-
 #### reflection
 
 Many function and method implementations in the `refect` package should be modified accordingly.
