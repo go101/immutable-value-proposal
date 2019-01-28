@@ -385,10 +385,10 @@ All parameters of type `reflect.Value` of the functions and methods in the `refl
 including receiver parameters, should be declared as `var.fixed` values.
 However, the `reflect.Value` return results should be declared as `var.mutable` values.
 
-A `reflect.Value.ToFixed` method is needed to convert a Value to a `var.fixed` one.
+A `reflect.Value.ToFixed` method is needed to make a `reflect.Value` value represent a `var.fixed` Go value.
 
 A `reflect.Value.FixedInterface` method is needed, it returns a `var.fixed` interface value.
-The old `Interface` method panics on `var.mutable` values.
+The old `Interface` method panics on `var.fixed` values.
 
 A method `reflect.Type.Fixed` is needed to get the immutable version of a mutable type.
 A method `reflect.Type.Mutable` is needed to get the mutable version of an immutable type.
