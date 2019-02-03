@@ -246,29 +246,6 @@ even if the unsafe pointer is a `*.fixed` value.
 * We can't append new entries to (or replace entries of,
   or delete old entries from) `*.fixed`  map values.
 
-#### channels
-
-Channel rules are a little special.
-
-* Send
-  * We can send any values to a `*.mutable` channel.
-  * We can only send `*.fixed` values to a `*.fixed` channel. (The speciality.)
-* Receive
-  * Receiving from a `*.mutable` channel results a `*.mutable` value. (It is not important whether or not the result itself can be modified.)
-  * Receiving from a `*.fixed` channel results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
-
-#### functions
-
-Function parameters and results can be declared with property `{ref_modifiable: false}`.
-
-In the following function proptotype, parameter `x` and result `w` are viewed as being declared with `var.fixed`.
-```golang
-func fa(x Tx.fixed, y Ty) (z Tz, w Tw.fixed) {...}
-```
-
-A `func(T.fixed)` value is assignable to a `func(T)` value, not vice versa.
-A `func()(T)` value is assignable to a `func()(T.fixed)` value, not vice versa.
-
 #### method sets
 
 The method set of type `T.fixed` is a subset of type `T`.
@@ -302,6 +279,30 @@ if type `T` is not an interface type.)
 
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
+
+#### channels
+
+* Send
+  * We can send any values to a `*.mutable` channel.
+  * We can send any values, which are convertible to `*.fixed` values, to a `*.fixed` channel.
+* Receive
+  * Receiving from a `*.mutable` channel results a `*.mutable` value. (It is not important whether or not the result itself can be modified.)
+  * Receiving from a `*.fixed` channel results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
+
+#### functions
+
+Function parameters and results can be declared with property `{ref_modifiable: false}`.
+
+In the following function proptotype, parameter `x` and result `w` are viewed as being declared with `var.fixed`.
+```golang
+func fa(x Tx.fixed, y Ty) (z Tz, w Tw.fixed) {...}
+```
+
+A `func()(T)` value is assignable to a `func()(T.fixed)` value, not vice versa, execpt `T` is of an interace type.
+
+A `func(T.fixed)` value is assignable to a `func(T)` value, not vice versa, execpt `T` is of an interace type.
+
+Yes, here the excetpion that the `T` can't be an interface type makes the rules some imperfect.
 
 #### reflection
 
