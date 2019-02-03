@@ -208,7 +208,7 @@ In other words, values declared in short declarations are always `var.*` values.
 * Addresses of addressable `final.*` and `*.fixed` values are `var.fixed` pointer values.
   Some certain write permissions are lost when taking addresses of addressable `final.mutable` and `var.fixed` values.
 
-Yes, `final.*` non-basic values can be taken addresses.
+Yes, `final.*` values may be addressable.
 
 #### unsafe pointers
 
