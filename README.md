@@ -298,9 +298,9 @@ In the following function proptotype, parameter `x` and result `w` are viewed as
 func fa(x Tx.fixed, y Ty) (z Tz, w Tw.fixed) {...}
 ```
 
-A `func()(T)` value is assignable to a `func()(T.fixed)` value, not vice versa, execpt `T` is an interace type.
+A `func()(T)` value is assignable to a `func()(T.fixed)` value (execpt `T` is an interace type), not vice versa.
 
-A `func(T.fixed)` value is assignable to a `func(T)` value, not vice versa, execpt `T` is an interace type.
+A `func(T.fixed)` value is assignable to a `func(T)` value (execpt `T` is an interace type), not vice versa.
 
 Yes, here the excetpion that the `T` can't be an interface type makes the rules some imperfect.
 
