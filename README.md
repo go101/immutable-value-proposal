@@ -282,7 +282,7 @@ type I interface {
 The method set specified by type `I` contains two methods, `M0` and `M2`. The method set specified by type `I.fixed` only contains one method, `M2`.
 
 When a method is declared for a concrete type to implement an immutable method,
-the type of the receiver of the declared method may be immutable.
+the type of the receiver of the declared method must be immutable.
 For example, in the following code snippet, the type `T1` implements the interface `I` shown in the above code snippet, but the type `T2` doesn't.
 ```golang
 type T1 struct{}
