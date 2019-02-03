@@ -6,7 +6,6 @@ Old versions:
 * [the pure-immutable-value interpretation version](README-v2.md)
 * [the immutable-type interpretation version](README-v3.md)
 * [the immutable-type/value interpretation version: const.fixed](README-v4.md)
-* [the immutable-type/value interpretation version: final.fixed. With interface design flaw](README-v5.md)
 
 
 This proposal not Go 1 compatible. Please read the last section of this proposal for incompatible cases.
@@ -21,8 +20,9 @@ The problems this proposal tries to solve:
 1. no ways to declare package-level immutable non-basic values.
 1. no ways to declare immutable function parameters and results.
 
-Please note, the immutability semantics in this proposal is different from either the `const` values in C/C++.
-The following sections will describe the differences.
+Please note, the immutability semantics in this proposal is different
+from either the `const` values in C/C++ or in JavaScript.
+The following sections will explain the differences.
 
 ### The main points of this proposal
 
@@ -42,7 +42,7 @@ The permutation of thw two properties result 4 genres of values:
 1. `{self_modifiable: false, ref_modifiable: false}`.
    No such Go values currently.
 
-(Note, in fact, we can catagory declared function values, method values and constant basic values into either the 3rd or the 4th genre.)
+(Note, in fact, we can catagory declared function values and constant basic values into either the 3rd or the 4th genre.)
 
 This proposal treats the `self_modifiable` as a direct value property,
 and treats `ref_modifiable` as a type property (an indirect value property).
@@ -53,7 +53,7 @@ and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
 * `{self_modifiable: false}` values are declared with `final` (a new keyword).
    Please note that, although a `final` value itself can't be modified,
    the values referenced by the `final` value might be modifiable.
-   (Same as JavaScript `const` values and Java `final` values.)
+   (This is the same as JavaScript `const` values and Java `final` values.)
 
 Types with property `{ref_modifiable: false}` are called immutable types.
 The notation `T.fixed` is introduced to represent the immutable version of mutable type `T`,
@@ -62,7 +62,7 @@ Please note the semantics of **immutable type** in this proposal is different fr
 A value of type `T.fixed` may be modifiable, it is just that the values referenced (either directly or indirectly)
 by the `T.fixed` value can't be modified.
 
-Below, for description convenience, the proposal will call
+Below, the proposal will call
 * `T` values declared with `var` as `var.mutable` values.
 * `T` values declared with `final` as `final.mutable` values.
 * `T.fixed` values declared with `var` as `var.fixed` values.
@@ -75,14 +75,23 @@ Please note that,
 * the respective immutable types of no-reference types (including basic types, struct types with only fields
   of no-reference types and array types with no-reference element types) are the mutable types themselves.
 
-A notation `v.(fixed)` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
+A notation `v.(fixed)` is introduced to convert a value `v` to a `*.fixed` value.
+The notation is called **immutability assertion**.
+If `v` is a non-interface values, `v.(fixed)` will always succeed.
+This notation is mainly used in two situations:
+1. assert a `*.mutable` interface value to a `*.fixed` interface value.
+1. use `v.(fixed)` as the initial values for new declared values so that
+  compilers can deduce the new declared values are `*.fixed` values.
 
 The **basic assignment/binding rules**:
 1. `*.mutable` values can be bound/assigned to a `*.mutable` value.
 1. **A `final.*` value must be bound a value in its declaration**.
    After the declaration, it can never be assigned any more.
-1. Any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
-   and the new supported values by this proposal.
+1. Generally, any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
+   and the new supported values by this proposal, with one exception: **`*.mutable` interface values can't be assigned
+   to `*.fixed` interface values**. A `*.mutable` interface value can only be
+   **immutability asserted** to a `*.fixed` interface value.
+   (Please view the interface related rules section below for details.)
 1. Generally, `*.fixed` values can't be bound/assigned to a `*.mutable` value, with one exception:
    `*.fixed` values of no-reference types will be viewed as be viewed as `*.mutable` values when they are used
    as source values in assignments. (Maybe function types should be also viewed as no-reference types.)
@@ -237,11 +246,45 @@ even if the unsafe pointer is a `*.fixed` value.
 * We can't append new entries to (or replace entries of,
   or delete old entries from) `*.fixed`  map values.
 
+#### method sets
+
+The method set of type `T.fixed` is a subset of type `T`.
+If `T` is an interface type, then the method sets of `T.fixed` and `T` are always identical.
+
+For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly),
+the method set of type `T.fixed` is a subset of type `*T.fixed`.
+(Or in other words, the method set of type `T` is a subset of type `*T`
+if type `T` is not an interface type.)
+
+#### interfaces
+
+* Dynamic type
+  * The dynamic type of a `*.mutable` interface value is a mutable type.
+  * The dynamic type of a `*.fixed` interface value is an immutable type.
+* Box
+  * No values can be boxed into `final.*` interface values (except the initial bound values).
+  * `*.fixed` values can't be boxed into `var.mutable` interface values.
+  * Any value can be boxed into a `var.fixed` interface value
+  (_as long as the method set of `T.fixed` implements the type of the interface value_,
+  where `T` is the corresponding mutable type of the value to be boxed).
+* Assert
+  * A type assertion on a `*.fixed` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
+    For such an assertion, its syntax form `x.(T.fixed)` can be simplified as `x.(T)`.
+  * A type assertion on a `*.mutable` interface value results a `*.mutable` value. (It is not important whether or not the result itself can be modified.)
+  * An immutability assertion on a `*.mutable` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
+    Such an assertion fails if the immutable version of the dynamic type of the interface value doesn't implement the type of the interface value.
+    Same as type assertions, an immutability assertion may return an optional second untyped bool which indicates whether the assetsion succeeds.
+    An failed assertion results a nil `*.fixed` interface value.
+    An failed assertion with the second optional result missing will panic.
+
+For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
+in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
+
 #### channels
 
 * Send
-  * We can only send `*.mutable` values to a `*.mutable` channel.
-  * We can send values of any genres to a `*.fixed` channel.
+  * We can send any values to a `*.mutable` channel.
+  * We can send any values, which are convertible to `*.fixed` values, to a `*.fixed` channel.
 * Receive
   * Receiving from a `*.mutable` channel results a `*.mutable` value. (It is not important whether or not the result itself can be modified.)
   * Receiving from a `*.fixed` channel results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
@@ -255,61 +298,11 @@ In the following function proptotype, parameter `x` and result `w` are viewed as
 func fa(x Tx.fixed, y Ty) (z Tz, w Tw.fixed) {...}
 ```
 
-A `func()(T)` value is assignable to a `func()(T.fixed)` value, not vice versa.
+A `func()(T)` value is assignable to a `func()(T.fixed)` value (execpt `T` is an interace type), not vice versa.
 
-A `func(T.fixed)` value is assignable to a `func(T)` value, not vice versa.
+A `func(T.fixed)` value is assignable to a `func(T)` value (execpt `T` is an interace type), not vice versa.
 
-#### method sets
-
-The method set of type `T.fixed` is always a subset of type `T`.
-
-For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly),
-the method set of type `T.fixed` is a subset of type `*T.fixed`.
-(Or in other words, the method set of type `T` is a subset of type `*T`
-if type `T` is not an interface type.)
-
-#### interfaces
-
-An interface type can specify some immutable methods. For example:
-```golang
-type I interface {
-	M0(Ta) Tb // a mutable method
-
-	M2.fixed(Tx) Ty // an immutable method
-}
-```
-
-The method set specified by type `I` contains two methods, `M0` and `M2`. The method set specified by type `I.fixed` only contains one method, `M2`.
-
-When a method is declared for a concrete type to implement an immutable method,
-the type of the receiver of the declared method may be immutable.
-For example, in the following code snippet, the type `T1` implements the interface `I` shown in the above code snippet, but the type `T2` doesn't.
-```golang
-type T1 struct{}
-func (T1) M0(Ta) Tb {var b Tb; return b}
-func (T1.fixed) M2(Tx) Ty {var y Ty; return y} // the receiver type is immutable.
-
-type T2 struct{}
-func (T2) M0(Ta) Tb {var b Tb; return b}
-func (T2) M2(Tx) Ty {var y Ty; return y} // the receiver type is mutable.
-```
-
-If a mutable type `T` implements a mutable interface type `I`, then the immutable type `T.fixed` also implements the immutable interface type `I.fixed`.
-
-* Dynamic type
-  * The dynamic type of a `*.mutable` interface value is a mutable type.
-  * The dynamic type of a `*.fixed` interface value is an immutable type.
-* Box
-  * No values can be boxed into `final.*` interface values (except the initial bound values).
-  * `*.fixed` values can't be boxed into `var.mutable` interface values.
-  * Values of any genres can be boxed into a `var.fixed` interface value.
-* Assert
-  * A type assertion on a `*.fixed` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
-    For such an assertion, its syntax form `x.(T.fixed)` can be simplified as `x.(T)`.
-  * A type assertion on a `*.mutable` interface value results a `*.mutable` value. (It is not important whether or not the result itself can be modified.)
-
-For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
-in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
+Yes, here the excetpion that the `T` can't be an interface type makes the rules some imperfect.
 
 #### reflection
 
@@ -419,3 +412,8 @@ The followings are the incompatible cases I'm aware of now.
 1. `final` and `fixed` may be used as non-exported identifiers in old user code.
    It should be easy for the `go fix` command to modify these uses to others.
    (Using `const` to replace `final` and `fixed` can avoid this incompatible case, but may cause some confusions.)
+1. Another incompatible case is caused by the fact that `*.mutable` interface value can't be assigned to `*.fixed` interface values.
+   When the parameters of a function, such as the `fmt.Print` function, are changed to immutable types,
+   then some old user code will fail to compile.
+   But it should be easy for the `go fix` command to modify the corresponding arguments to immutability assertions.
+
