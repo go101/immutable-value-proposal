@@ -59,7 +59,8 @@ Types with property `{ref_modifiable: false}` are called immutable types.
 The notation `T.fixed` is introduced to represent the immutable version of mutable type `T`,
 where `fixed` is a new introduced keyword.
 Please note the semantics of **immutable type** in this proposal is different from many other immutable type proposals.
-A value of type `T.fixed` may be modifiable, it is just that the values referenced by the `T.fixed` value can't be modified.
+A value of type `T.fixed` may be modifiable, it is just that the values referenced (either directly or indirectly)
+by the `T.fixed` value can't be modified.
 
 Below, the proposal will call
 * `T` values declared with `var` as `var.mutable` values.
