@@ -81,7 +81,7 @@ The **basic assignment/binding rules**:
 1. `*.mutable` values can be bound/assigned to a `*.mutable` value.
 1. **A `final.*` value must be bound a value in its declaration**.
    After the declaration, it can never be assigned any more.
-1. Any value can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
+1. Values of any genres can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
    and the new supported values by this proposal.
 1. Generally, `*.fixed` values can't be bound/assigned to a `*.mutable` value, with one exception:
    `*.fixed` values of no-reference types will be viewed as be viewed as `*.mutable` values when they are used
