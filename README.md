@@ -151,7 +151,7 @@ final FileNotExist = errors.New("file not exist").(fixed) // a totally immutable
 final FileNotExist .fixed = errors.New("file not exist")  // equivalent to the above line
 
 // The following declarations are equivalent.
-var a []int.fixed
+var a []int.fixed = []int{1, 2, 3}
 var a .fixed = []int{1, 2, 3}
 var a = []int{1, 2, 3}.(fixed)
 
@@ -206,17 +206,19 @@ Yes, `final.*` values may be addressable.
 
 * Dereferences of an unsafe pointer are always `var.mutable` values,
 even if the unsafe pointer is a `*.fixed` value.
-(This is important for refection implementation.)
+(This is important for reflection implementation.)
 
 #### structs
 
 * Fields of `var.fixed` struct values are `var.fixed` values.
+* Fields of `var.mutable` struct values are `var.mutable` values.
 * Fields of `final.fixed` struct values are `final.fixed` values.
 * Fields of `final.mutable` struct values are `final.mutable` values.
 
 #### arrays
 
 * Elements of `var.fixed` array values are `var.fixed` values.
+* Elements of `var.mutable` array values are `var.mutable` values.
 * Elements of `final.fixed` array values are `final.fixed` values.
 * Elements of `final.mutable` array values are `final.mutable` values.
 
@@ -229,6 +231,7 @@ even if the unsafe pointer is a `*.fixed` value.
   * The subslice result of a `final.fixed` slice is still a `final.fixed` slice.
   * The subslice result of a `final.mutable` slice is still a `final.mutable` slice.
   * The subslice result of a `var.fixed` slice is still a `var.fixed` slice.
+  * The subslice result of a `var.mutable` slice is still a `var.mutable` slice.
 
 #### maps
 
@@ -250,7 +253,7 @@ even if the unsafe pointer is a `*.fixed` value.
 
 Function parameters and results can be declared with property `{ref_modifiable: false}`.
 
-In the following function proptotype, parameter `x` and result `w` are viewed as being declared with `var.fixed`.
+In the following function proptotype, parameter `x` and result `w` are viewed as being declared as `var.fixed` values.
 ```golang
 func fa(x Tx.fixed, y Ty) (z Tz, w Tw.fixed) {...}
 ```
@@ -275,14 +278,14 @@ An interface type can specify some immutable methods. For example:
 type I interface {
 	M0(Ta) Tb // a mutable method
 
-	M2.fixed(Tx) Ty // an immutable method
+	fixed M2(Tx) Ty // an immutable method
 }
 ```
 
 The method set specified by type `I` contains two methods, `M0` and `M2`. The method set specified by type `I.fixed` only contains one method, `M2`.
 
 When a method is declared for a concrete type to implement an immutable method,
-the type of the receiver of the declared method must be immutable.
+the type of the receiver of the declared method must be immutable (a.k.a., a `var.fixed` value).
 For example, in the following code snippet, the type `T1` implements the interface `I` shown in the above code snippet, but the type `T2` doesn't.
 ```golang
 type T1 struct{}
@@ -340,7 +343,7 @@ var v interface{} = y       // error
 var v interface{}.fixed = y // ok
 var w = v.([][]int)         // ok, w is a var.fixed value
 v = x                       // ok
-var u = v.(fixed)           // ok, assertion succeeds. u is a var.fixed value
+var u = v.(fixed)           // ok, u is a var.fixed value
 
 // S is exported, but external packages have
 // no ways to modify x and S (through S).
@@ -360,7 +363,7 @@ Another one:
 ```golang
 var s = "hello word"
 var bytes = []byte.fixed(s) // a clever compiler will not allocate a
-                            // deplicate underlying byte sequence here.
+                            // duplicate underlying byte sequence here.
 {
 	pw := &s[6] // pw is a `var.fixed` value of built-in type "byte".
 }
