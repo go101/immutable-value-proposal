@@ -75,7 +75,8 @@ Please note that,
 * the respective immutable types of no-reference types (including basic types, struct types with only fields
   of no-reference types and array types with no-reference element types) are the mutable types themselves.
 
-A notation `v.(fixed)` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
+A notation `v.fixed` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
+Note, similar to the immutable type notation, `.fixed` must be the last portion in an expression.
 
 The **basic assignment/binding rules**:
 1. `*.mutable` values can be bound/assigned to a `*.mutable` value.
@@ -147,13 +148,13 @@ The current design may be not perfect, so any improvemnt ideas are welcome.
 
 Some examples of the full value declaration form:
 ```golang
-final FileNotExist = errors.New("file not exist").(fixed) // a totally immutable value
+final FileNotExist = errors.New("file not exist").fixed // a totally immutable value
 final FileNotExist .fixed = errors.New("file not exist")  // equivalent to the above line
 
 // The following declarations are equivalent.
 var a []int.fixed = []int{1, 2, 3}
 var a .fixed = []int{1, 2, 3}
-var a = []int{1, 2, 3}.(fixed)
+var a = []int{1, 2, 3}.fixed
 
 // The following declarations are equivalent (for no-reference types only).
 var b int
@@ -162,9 +163,9 @@ var b int.fixed
 // Declare variables in a hybrid way.
 
 // x is a var.fixed value, y is a var.mutable value.
-var x, y = []int{1, 2}.(fixed), []int{1, 2}
+var x, y = []int{1, 2}.fixed, []int{1, 2}
 // z is a final.mutable value, w is a final.fixed value.
-final z, w []int = []int{1, 2}, []int{1, 2}.(fixed)
+final z, w []int = []int{1, 2}, []int{1, 2}.fixed
 ```
 
 Immutable parameter and result declaration examples:
@@ -178,13 +179,13 @@ To avoid syntax design complexity, `final.*` parameters and results are not supp
 Short value declaration examples:
 ```golang
 {
-	oldA, newB := va, vb.(fixed)
+	oldA, newB := va, vb.fixed
 	oldA, newB := va, (.fixed)(vb) // equivalent to the above line
 
 	newX, oldY := (Tx.fixed)(va), vy
-	newX, oldY := (Tx(va)).(fixed), vy
-	newX, oldY := Tx(va.(fixed)), vy
-	newX, oldY := Tx(va).(fixed), vy // equivalent to the above three lines
+	newX, oldY := (Tx(va)).fixed, vy
+	newX, oldY := Tx(va.fixed), vy
+	newX, oldY := Tx(va).fixed, vy // equivalent to the above three lines
 }
 ```
 
@@ -265,6 +266,25 @@ A `func(T.fixed)` value is assignable to a `func(T)` value, not vice versa.
 #### method sets
 
 The method set of type `T.fixed` is always a subset of type `T`.
+This means when a method `M` is explicitly declared for type `T.fixed`,
+then a corresponding implicit method with the same name will be declared for type `T` by compilers.
+```golang
+func (T.fixed) M() {} // explicitly declared
+/*
+func (t T) M() {t.fixed.M()} // implicitly declared
+*/
+
+var t T
+t.M()
+// <=>
+t.fixed.M()
+// <=>
+T.fixed.M(t.fixed)
+// <=>
+T.fixed.M(t)
+// <=>
+T.M(t)
+```
 
 For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly),
 the method set of type `T.fixed` is a subset of type `*T.fixed`.
@@ -278,7 +298,9 @@ An interface type can specify some immutable methods. For example:
 type I interface {
 	M0(Ta) Tb // a mutable method
 
-	fixed M2(Tx) Ty // an immutable method
+	fixed.M2(Tx) Ty // an immutable method
+	                // NOTE 1: this is an exported method.
+	                // NOTE 2: in it calls, the "fixed." part will be omitted.
 }
 ```
 
@@ -343,17 +365,17 @@ var v interface{} = y       // error
 var v interface{}.fixed = y // ok
 var w = v.([][]int)         // ok, w is a var.fixed value
 v = x                       // ok
-var u = v.(fixed)           // ok, u is a var.fixed value
+var u = v.fixed             // ok, u is a var.fixed value
 
 // S is exported, but external packages have
 // no ways to modify x and S (through S).
-final S = x.(fixed) // ok.
+final S = x.fixed   // ok.
 S = x               // error
 t := S[:]           // ok, t is a var.fixed value. S[:] is a final.fixed value.
 _ = append(t, 4)    // error
 
 // The elements of R even can't be modified in current package!
-final R = []int{7, 8, 9}.(fixed)
+final R = []int{7, 8, 9}.fixed
 
 // Q can't be modified, but its elements can.
 final Q = []int{7, 8, 9}
