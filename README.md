@@ -85,8 +85,10 @@ The **basic assignment/binding rules**:
 1. Values of any genres can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
    and the new supported values by this proposal.
 1. Generally, `*.fixed` values can't be bound/assigned to a `*.mutable` value, with one exception:
-   `*.fixed` values of no-reference types will be viewed as be viewed as `*.mutable` values when they are used
-   as source values in assignments. (Maybe function types should be also viewed as no-reference types.)
+   `*.fixed` values of no-reference types will be viewed as be viewed as `*.mutable` values (and vice versa) when
+   they are used as source values in assignments. (Maybe function types should be also viewed as no-reference types.)
+   In other words, a value of any genre can be assigned to another value of any genre,
+   if the two values are values of no-reference types, as long as they satisfy other old assignment requirements.
 
 Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**, it
 **might be modified through other `*.mutable` values which are referencing it**. (Yes, this proposal doesn't solve all problems.)
