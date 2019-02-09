@@ -288,6 +288,9 @@ T.fixed.M(t)
 T.M(t)
 ```
 
+In the above code snippet, the method set of type `T.fixed` contains one method: `fixed.M`,
+however the method set of type `T` contains two method: `fixed.M` and `M`.
+
 For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly),
 the method set of type `T.fixed` is a subset of type `*T.fixed`.
 (Or in other words, the method set of type `T` is a subset of type `*T`
@@ -301,12 +304,15 @@ type I interface {
 	M0(Ta) Tb // a mutable method
 
 	fixed.M2(Tx) Ty // an immutable method
-	                // NOTE 1: this is an exported method.
-	                // NOTE 2: in it calls, the "fixed." part will be omitted.
+	                // NOTE: this is an exported method.
 }
 ```
 
-The method set specified by type `I` contains two methods, `M0` and `M2`. The method set specified by type `I.fixed` only contains one method, `M2`.
+Similar to non-interface type, if a mutable interface type explicitly specified an immutable method `fixed.M`,
+it also implicitly specifies a mutable method with the same name `M`.
+
+The method set specified by type `I` contains three methods, `M0`, `fixed.M2` and `M2`.
+The method set specified by type `I.fixed` only contains one method, `fixed.M2`.
 
 When a method is declared for a concrete type to implement an immutable method,
 the type of the receiver of the declared method must be immutable (a.k.a., a `var.fixed` value).
