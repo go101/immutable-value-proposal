@@ -2,6 +2,7 @@
 
 Old versions:
 * [the proposal thread](https://github.com/golang/go/issues/29422).
+* [the initial proposal](README-v0.md)
 * [the `var:N` version](README-v1.md)
 * [the pure-immutable-value interpretation version](README-v2.md)
 * [the immutable-type interpretation version](README-v3.md)
