@@ -230,12 +230,14 @@ even if the unsafe pointer is a `*.fixed` value.
 
 * Elements of `*.fixed` slice values are `final.fixed` values.
 * Elements of `*.mutable` slice values are `var.mutable` values.
-* We can't append elements to `final.*` and `*.fixed` slice values.
+* We can't append elements to `*.fixed` slice values.
 * Subslice:
   * The subslice result of a `final.fixed` slice is still a `final.fixed` slice.
   * The subslice result of a `final.mutable` slice is still a `final.mutable` slice.
   * The subslice result of a `var.fixed` slice is still a `var.fixed` slice.
-  * The subslice result of a `var.mutable` slice is still a `var.mutable` slice.
+  * The subslice result of a `var.mutable` slice or array is a `var.mutable` slice.
+  * The subslice result of a `final.*` or `*.fixed array is a `var.fixed` slice.
+    Some certain write permmisions may be lost in the process.
 
 #### maps
 
@@ -385,9 +387,11 @@ _ = append(t, 4)    // error
 
 // The elements of R even can't be modified in current package!
 final R = []int{7, 8, 9}.fixed
+R[1] = 888 // error
 
 // Q can't be modified, but its elements can.
 final Q = []int{7, 8, 9}
+Q[1]= 888 // ok
 ```
 
 Another one:
