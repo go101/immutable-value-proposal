@@ -19,11 +19,10 @@ Any criticisms and improvement ideas are welcome, for
 ### The problems this proposal tries to solve
 
 The problems this proposal tries to solve:
-1. no ways to declare package-level immutable non-basic values.
+1. no ways to declare package-level exported immutable non-basic values.
 1. no ways to declare immutable function parameters and results.
 
-Please note, the immutability semantics in this proposal is different from either the `const` values in C/C++.
-The following sections will describe the differences.
+By solving the two problems, the security and performance of Go programs can be improved much.
 
 ### The main points of this proposal
 
@@ -249,11 +248,14 @@ even if the unsafe pointer is a `*.fixed` value.
 #### channels
 
 * Send
-  * We can only send `*.mutable` values to a `*.mutable` channel.
   * We can send values of any genres to a `*.fixed` channel.
+  * We can only send `*.mutable` values to a `*.mutable` channel.
 * Receive
   * Receiving from a `*.mutable` channel results a `*.mutable` value. (It is not important whether or not the result itself can be modified.)
   * Receiving from a `*.fixed` channel results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
+
+(Note, the rules allow to send/receive values to/from `final.*` channels.
+Maybe it is also acceptable to disallow these cases.)
 
 #### functions
 
