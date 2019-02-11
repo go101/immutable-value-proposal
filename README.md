@@ -76,7 +76,6 @@ Please note that,
   of no-reference types and array types with no-reference element types) are the mutable types themselves.
 
 A notation `v.fixed` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
-Note, similar to the immutable type notation, `.fixed` must be the last portion in an expression.
 
 The **basic assignment/binding rules**:
 1. `*.mutable` values can be bound/assigned to a `*.mutable` value.
@@ -331,6 +330,15 @@ type T2 struct{}
 func (T2) M0(Ta) Tb {var b Tb; return b}
 func (T2) M2(Tx) Ty {var y Ty; return y} // the receiver type is mutable.
 ```
+
+Please note, the type `T3` in the following code snippet also implements `I`.
+Please read the above function section for reasons.
+```golang
+type T1 struct{}
+func (T1) M0(Ta.fixed) Tb {var b Tb; return b}
+func (T1.fixed) M2(Tx.fixed) Ty {var y Ty; return y} // the receiver type is immutable.
+```
+
 
 If a mutable type `T` implements a mutable interface type `I`, then the immutable type `T.fixed` also implements the immutable interface type `I.fixed`.
 
