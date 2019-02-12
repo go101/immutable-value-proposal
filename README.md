@@ -235,7 +235,7 @@ even if the unsafe pointer is a `*.fixed` value.
   * The subslice result of a `final.noraml` slice is still a `final.noraml` slice.
   * The subslice result of a `var.fixed` slice is still a `var.fixed` slice.
   * The subslice result of a `var.noraml` slice or array is a `var.noraml` slice.
-  * The subslice result of a `final.*` or `*.fixed array is a `var.fixed` slice.
+  * The subslice result of a `final.*` or `*.fixed` array is a `var.fixed` slice.
     Some certain write permmisions may be lost in the process.
 
 #### maps
