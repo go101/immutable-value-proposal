@@ -385,6 +385,10 @@ p := &z[0]     // ok. p is a var.fixed value.
 x[0] = *p      // ok
 p = new(int)   // ok
 
+var w = [][]int{z, x} // like y, w is also a [][]int.fixed value.
+                      // A composite literal is a fixed value
+                      // only of one of its elements is fixed.
+
 var v interface{} = y       // error
 var v interface{}.fixed = y // ok
 var w = v.([][]int)         // ok, w is a var.fixed value
