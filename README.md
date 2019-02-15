@@ -72,8 +72,8 @@ Please note that,
 * the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
   whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
 * `fixed` is not allowed to appear in type declarations. `type T []int.fixed` is invalid.
-* the respective fixed types of normal no-reference types (including basic types, struct types with only fields
-  of no-reference types and array types with no-reference element types) are the normal types themselves.
+* the respective fixed types of normal no-reference types (including basic types, fucntion types. struct types with only fields
+  of no-reference types, and array types with no-reference element types) are the normal types themselves.
 
 A notation `v.fixed` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
 
@@ -85,7 +85,7 @@ The **basic assignment/binding rules**:
    and the new supported values by this proposal.
 1. Generally, `*.fixed` values can't be bound/assigned to a `*.noraml` value, with one exception:
    `*.fixed` values of no-reference types will be viewed as be viewed as `*.noraml` values (and vice versa) when
-   they are used as source values in assignments. (Maybe function types should be also viewed as no-reference types.)
+   they are used as source values in assignments.
    In other words, a value of any genre can be assigned to another value of any genre,
    if the two values are both of no-reference types, as long as they satisfy other old assignment requirements.
 
