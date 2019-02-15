@@ -393,7 +393,7 @@ var v interface{} = y       // error
 var v interface{}.fixed = y // ok
 var w = v.([][]int)         // ok, w is a var.fixed value
 v = x                       // ok
-var u = v.fixed             // ok, u is a var.fixed value
+var u = x.fixed             // ok, u is a var.fixed value
 
 // S is exported, but external packages have
 // no ways to modify x and S (through S).
