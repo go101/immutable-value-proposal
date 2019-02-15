@@ -249,14 +249,12 @@ even if the unsafe pointer is a `*.fixed` value.
 #### channels
 
 * Send
-  * We can send values of any genres to a `*.fixed` channel.
-  * We can only send `*.noraml` values to a `*.noraml` channel.
+  * We can't send/receive values to/from `final.*` channels.
+  * We can send values of any genres to a `var.fixed` channel.
+  * We can only send `*.noraml` values to a `var.noraml` channel.
 * Receive
   * Receiving from a `*.noraml` channel results a `*.noraml` value. (It is not important whether or not the result itself can be modified.)
   * Receiving from a `*.fixed` channel results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
-
-(Note, the rules allow to send/receive values to/from `final.*` channels.
-Maybe it is also acceptable to disallow these cases.)
 
 #### functions
 
