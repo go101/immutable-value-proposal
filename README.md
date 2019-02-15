@@ -1,7 +1,7 @@
 # An immutable Go values and read-only Go types proposal
 
 Old versions:
-* [the proposal thread](https://github.com/golang/go/issues/29422).
+* [the proposal thread](https://github.com/golang/go/issues/29422)
 * [the initial proposal](README-v0.md)
 * [the `var:N` version](README-v1.md)
 * [the pure-immutable-value interpretation version](README-v2.md)
@@ -10,7 +10,8 @@ Old versions:
 * [the immutable-type/value interpretation version: final.fixed. With interface design flaw](README-v5.md)
 
 
-This proposal not Go 1 compatible. Please read the last section of this proposal for incompatible cases.
+This proposal is not Go 1 compatible.
+Please read the last section of this proposal for incompatible cases.
 
 Any criticisms and improvement ideas are welcome, for
 * I have not much compiler-related knowledge, so the following designs may have flaws.
@@ -92,7 +93,7 @@ Please note that, although a value **can't be modified through `*.fixed` values 
 (the core principle of the proposal), it
 **might be modified through other `*.noraml` values which are referencing it**.
 (Yes, this proposal doesn't solve all problems.)
-In other words, most of the rules in this proposal are enfored by compilers, not runtimes.
+In other words, the immutabilities provided by this proposal are not new ways to avoid data races.
 
 The section to the next will list the detailed rules for values of all kinds of types.
 Those rules are much straightforward and anticipated.
