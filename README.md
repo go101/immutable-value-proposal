@@ -76,6 +76,7 @@ Please note that,
   of no-reference types, and array types with no-reference element types) are the normal types themselves.
 
 A notation `v.fixed` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
+The `.fixed` suffix can only follow R-values (right values). 
 
 The **basic assignment/binding rules**:
 1. `*.noraml` values can be bound/assigned to a `*.noraml` value.
