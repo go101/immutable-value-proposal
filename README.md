@@ -220,6 +220,9 @@ even if the unsafe pointer is a `*.fixed` value.
 * Fields of `final.fixed` struct values are `final.fixed` values.
 * Fields of `final.normal` struct values are `final.normal` values.
 
+NOTE, there is [a pending design](https://github.com/golang/go/issues/29422#issuecomment-463427397)
+to support specified immutabilities for struct fields.
+
 #### arrays
 
 * Elements of `var.fixed` array values are `var.fixed` values.
