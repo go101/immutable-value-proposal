@@ -57,14 +57,14 @@ and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
    (Same as JavaScript `const` values and Java `final` values.)
 
 Types with property `{ref_modifiable: false}` are called fixed types.
-The notation `T.fixed` is introduced to represent the fixed version of noraml type `T`,
+The notation `T.fixed` is introduced to represent the fixed version of normal type `T`,
 where `fixed` is a new introduced keyword.
 A value of type `T.fixed` may be modifiable, it is just that the values referenced (either directly or indirectly)
 by the `T.fixed` value can't be modified.
 
 Below, for description convenience, the proposal will call
-* `T` values declared with `var` as `var.noraml` values.
-* `T` values declared with `final` as `final.noraml` values.
+* `T` values declared with `var` as `var.normal` values.
+* `T` values declared with `final` as `final.normal` values.
 * `T.fixed` values declared with `var` as `var.fixed` values.
 * `T.fixed` values declared with `final` as `final.fixed` values.
 
@@ -79,20 +79,20 @@ A notation `v.fixed` is introduced to convert a value `v` of type `T` to a `T.fi
 The `.fixed` suffix can only follow R-values (right values). 
 
 The **basic assignment/binding rules**:
-1. `*.noraml` values can be bound/assigned to a `*.noraml` value.
+1. `*.normal` values can be bound/assigned to a `*.normal` value.
 1. **A `final.*` value must be bound a value in its declaration**.
    After the declaration, it can never be assigned any more.
 1. Values of any genres can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
    and the new supported values by this proposal.
-1. Generally, `*.fixed` values can't be bound/assigned to a `*.noraml` value, with one exception:
-   `*.fixed` values of no-reference types will be viewed as be viewed as `*.noraml` values (and vice versa) when
+1. Generally, `*.fixed` values can't be bound/assigned to a `*.normal` value, with one exception:
+   `*.fixed` values of no-reference types will be viewed as be viewed as `*.normal` values (and vice versa) when
    they are used as source values in assignments.
    In other words, a value of any genre can be assigned to another value of any genre,
    if the two values are both of no-reference types, as long as they satisfy other old assignment requirements.
 
 Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**
 (the core principle of the proposal), it
-**might be modified through other `*.noraml` values which are referencing it**.
+**might be modified through other `*.normal` values which are referencing it**.
 (Yes, this proposal doesn't solve all problems.)
 In other words, the immutabilities provided by this proposal are not new ways to avoid data races.
 
@@ -166,9 +166,9 @@ var b int.fixed
 
 // Declare variables in a hybrid way.
 
-// x is a var.fixed value, y is a var.noraml value.
+// x is a var.fixed value, y is a var.normal value.
 var x, y = []int{1, 2}.fixed, []int{1, 2}
-// z is a final.noraml value, w is a final.fixed value.
+// z is a final.normal value, w is a final.fixed value.
 final z, w []int = []int{1, 2}, []int{1, 2}.fixed
 ```
 
@@ -201,49 +201,49 @@ In other words, values declared in short declarations are always `var.*` values.
 #### safe pointers
 
 * Dereferences of `*.fixed` pointers are `final.fixed` values.
-* Dereferences of `*.noraml` pointers are `var.noraml` values.
+* Dereferences of `*.normal` pointers are `var.normal` values.
 * Addresses of addressable `final.*` and `*.fixed` values are `var.fixed` pointer values.
-  Some certain write permissions are lost when taking addresses of addressable `final.noraml` and `var.fixed` values.
+  Some certain write permissions are lost when taking addresses of addressable `final.normal` and `var.fixed` values.
 
 Yes, `final.*` values may be addressable.
 
 #### unsafe pointers
 
-* Dereferences of an unsafe pointer are always `var.noraml` values,
+* Dereferences of an unsafe pointer are always `var.normal` values,
 even if the unsafe pointer is a `*.fixed` value.
 (This is important for reflection implementation.)
 
 #### structs
 
 * Fields of `var.fixed` struct values are `var.fixed` values.
-* Fields of `var.noraml` struct values are `var.noraml` values.
+* Fields of `var.normal` struct values are `var.normal` values.
 * Fields of `final.fixed` struct values are `final.fixed` values.
-* Fields of `final.noraml` struct values are `final.noraml` values.
+* Fields of `final.normal` struct values are `final.normal` values.
 
 #### arrays
 
 * Elements of `var.fixed` array values are `var.fixed` values.
-* Elements of `var.noraml` array values are `var.noraml` values.
+* Elements of `var.normal` array values are `var.normal` values.
 * Elements of `final.fixed` array values are `final.fixed` values.
-* Elements of `final.noraml` array values are `final.noraml` values.
+* Elements of `final.normal` array values are `final.normal` values.
 
 #### slices
 
 * Elements of `*.fixed` slice values are `final.fixed` values.
-* Elements of `*.noraml` slice values are `var.noraml` values.
+* Elements of `*.normal` slice values are `var.normal` values.
 * We can't append elements to `*.fixed` slice values.
 * Subslice:
   * The subslice result of a `final.fixed` slice is still a `final.fixed` slice.
-  * The subslice result of a `final.noraml` slice is still a `final.noraml` slice.
+  * The subslice result of a `final.normal` slice is still a `final.normal` slice.
   * The subslice result of a `var.fixed` slice is still a `var.fixed` slice.
-  * The subslice result of a `var.noraml` slice or array is a `var.noraml` slice.
+  * The subslice result of a `var.normal` slice or array is a `var.normal` slice.
   * The subslice result of a `final.*` or `*.fixed` array is a `var.fixed` slice.
     Some certain write permmisions may be lost in the process.
 
 #### maps
 
 * Elements of `*.fixed` map values are `final.fixed` values.
-* Elements of `*.noraml` map values are `var.noraml` values.
+* Elements of `*.normal` map values are `var.normal` values.
 * We can't append new entries to (or replace entries of,
   or delete old entries from) `*.fixed`  map values.
 
@@ -252,9 +252,9 @@ even if the unsafe pointer is a `*.fixed` value.
 * Send
   * We can't send/receive values to/from `final.*` channels.
   * We can send values of any genres to a `var.fixed` channel.
-  * We can only send `*.noraml` values to a `var.noraml` channel.
+  * We can only send `*.normal` values to a `var.normal` channel.
 * Receive
-  * Receiving from a `*.noraml` channel results a `*.noraml` value. (It is not important whether or not the result itself can be modified.)
+  * Receiving from a `*.normal` channel results a `*.normal` value. (It is not important whether or not the result itself can be modified.)
   * Receiving from a `*.fixed` channel results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
 
 #### functions
@@ -330,7 +330,7 @@ func (T1.fixed) M2(Tx) Ty {var y Ty; return y} // the receiver type is fixed.
 
 type T2 struct{}
 func (T2) M0(Ta) Tb {var b Tb; return b}
-func (T2) M2(Tx) Ty {var y Ty; return y} // the receiver type is noraml.
+func (T2) M2(Tx) Ty {var y Ty; return y} // the receiver type is normal.
 ```
 
 Please note, the type `T3` in the following code snippet also implements `I`.
@@ -341,20 +341,20 @@ func (T1) M0(Ta.fixed) Tb {var b Tb; return b}
 func (T1.fixed) M2(Tx.fixed) Ty {var y Ty; return y} // the receiver type is fixed.
 ```
 
-If a normal type `T` implements a noraml interface type `I`,
+If a normal type `T` implements a normal interface type `I`,
 then the fixed type `T.fixed` also implements the fixed interface type `I.fixed`.
 
 * Dynamic type
-  * The dynamic type of a `*.noraml` interface value is a normal type.
+  * The dynamic type of a `*.normal` interface value is a normal type.
   * The dynamic type of a `*.fixed` interface value is an fixed type.
 * Box
   * No values can be boxed into `final.*` interface values (except the initial bound values).
-  * `*.fixed` values can't be boxed into `var.noraml` interface values.
+  * `*.fixed` values can't be boxed into `var.normal` interface values.
   * Values of any genres can be boxed into a `var.fixed` interface value.
 * Assert
   * A type assertion on a `*.fixed` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
     For such an assertion, its syntax form `x.(T.fixed)` can be simplified as `x.(T)`.
-  * A type assertion on a `*.noraml` interface value results a `*.noraml` value. (It is not important whether or not the result itself can be modified.)
+  * A type assertion on a `*.normal` interface value results a `*.normal` value. (It is not important whether or not the result itself can be modified.)
 
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
@@ -444,7 +444,7 @@ In implementaion, one bit should be borrowed from the 23+ bits method number to 
 
 All parameters of type `reflect.Value` of the functions and methods in the `reflect` package,
 including receiver parameters, should be declared as `var.fixed` values.
-However, the `reflect.Value` return results should be declared as `var.noraml` values.
+However, the `reflect.Value` return results should be declared as `var.normal` values.
 
 A `reflect.Value.ToFixed` method is needed to make a `reflect.Value` value represent a `var.fixed` Go value.
 
