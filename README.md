@@ -202,7 +202,7 @@ In other words, values declared in short declarations are always `var.*` values.
 
 * Dereferences of `*.fixed` pointers are `final.fixed` values.
 * Dereferences of `*.normal` pointers are `var.normal` values.
-* Addresses of addressable `final.*` and `*.fixed` values are `var.fixed` pointer values.
+* Addresses of addressable `final.*` and `*.fixed` values are `*.fixed` pointer values.
   Some certain write permissions are lost when taking addresses of addressable `final.normal` and `var.fixed` values.
 
 Yes, `final.*` values may be addressable.
@@ -253,12 +253,13 @@ to support specified immutabilities for struct fields.
 #### channels
 
 * Send
-  * We can't send/receive values to/from `final.*` channels.
+  * We can't send values to `final.*` channels.
   * We can send values of any genres to a `var.fixed` channel.
   * We can only send `*.normal` values to a `var.normal` channel.
 * Receive
-  * Receiving from a `*.normal` channel results a `*.normal` value. (It is not important whether or not the result itself can be modified.)
-  * Receiving from a `*.fixed` channel results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
+  * We can't receive values from `final.*` channels.
+  * Receiving from a `*.normal` channel results a `*.normal` value.
+  * Receiving from a `*.fixed` channel results a `*.fixed` value.
 
 #### functions
 
@@ -355,9 +356,9 @@ then the fixed type `T.fixed` also implements the fixed interface type `I.fixed`
   * `*.fixed` values can't be boxed into `var.normal` interface values.
   * Values of any genres can be boxed into a `var.fixed` interface value.
 * Assert
-  * A type assertion on a `*.fixed` interface value results a `*.fixed` value. (It is not important whether or not the result itself can be modified.)
+  * A type assertion on a `*.fixed` interface value results a `*.fixed` value.
     For such an assertion, its syntax form `x.(T.fixed)` can be simplified as `x.(T)`.
-  * A type assertion on a `*.normal` interface value results a `*.normal` value. (It is not important whether or not the result itself can be modified.)
+  * A type assertion on a `*.normal` interface value results a `*.normal` value.
 
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
