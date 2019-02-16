@@ -378,35 +378,34 @@ var y [][]int.fixed
 y = [][]int{x, x} // ok
 
 x[1] = 123    // ok
-y[0][1] = 123 // error, for y is a var.fixed value.
+y[0][1] = 123 // error: y is a var.fixed value.
 var z = y[0]  // ok, z is also a var.fixed value.
-z[0] = 123    // error
+z[0] = 123    // error: z is a var.fixed value.
 
-p := &z[0]     // ok. p is a var.fixed value.
-*p = 123       // error
-x[0] = *p      // ok
-p = new(int)   // ok
+p := &z[0]   // ok. p is a var.fixed value.
+*p = 123     // error: p is a var.fixed value.
+x[0] = *p    // ok
+p = new(int) // ok
 
 var y2 = [][]int{z, x} // like y, y2 is also a [][]int.fixed value.
                        // A composite literal is a fixed value
-                       // only of one of its elements is fixed.
+                       // as long as one of its elements is fixed.
 
-var v interface{} = y       // error
+var v interface{} = y       // error: can't assign a fixed value to a normal value.
 var v interface{}.fixed = y // ok
 var w = v.([][]int)         // ok, w is a var.fixed value
 v = x                       // ok
 var u = x.fixed             // ok, u is a var.fixed value
 
-// S is exported, but external packages have
-// no ways to modify x and S (through S).
-final S = x.fixed   // ok.
-S = x               // error
-t := S[:]           // ok, t is a var.fixed value. S[:] is a final.fixed value.
-_ = append(t, 4)    // error
+// S is exported, external packages have no ways to modify x (through S).
+final S = x.fixed // ok.
+S = x             // error: can't assign to a final value.
+t := S[:]         // ok, t is a var.fixed value. S[:] is a final.fixed value.
+_ = append(t, 4)  // error: can't append to a fixed slice value.
 
 // The elements of R even can't be modified in current package!
 final R = []int{7, 8, 9}.fixed
-R[1] = 888 // error
+R[1] = 888 // error: elements of fixed slices are final values.
 
 // Q can't be modified, but its elements can.
 final Q = []int{7, 8, 9}
@@ -419,7 +418,7 @@ var s = "hello word"
 var bytes = []byte.fixed(s) // a clever compiler will not allocate a
                             // duplicate underlying byte sequence here.
 {
-	pw := &s[6] // pw is a `var.fixed` value of built-in type "byte".
+	pw := &s[6] // pw is a `var.fixed` poiner whose base type is "byte".
 }
 ```
 
