@@ -340,9 +340,9 @@ func (T2) M2(Tx) Ty {var y Ty; return y} // the receiver type is normal.
 Please note, the type `T3` in the following code snippet also implements `I`.
 Please read the above function section for reasons.
 ```golang
-type T1 struct{}
-func (T1) M0(Ta.fixed) Tb {var b Tb; return b}
-func (T1.fixed) M2(Tx.fixed) Ty {var y Ty; return y} // the receiver type is fixed.
+type T3 struct{}
+func (T3) M0(Ta.fixed) Tb {var b Tb; return b}
+func (T3.fixed) M2(Tx.fixed) Ty {var y Ty; return y} // the receiver type is fixed.
 ```
 
 If a normal type `T` implements a normal interface type `I`,
