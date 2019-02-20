@@ -62,6 +62,12 @@ where `fixed` is a new introduced keyword.
 A value of type `T.fixed` may be modifiable, it is just that the values referenced (either directly or indirectly)
 by the `T.fixed` value can't be modified.
 
+Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**
+(the core principle of the proposal),
+**it is possible to be modified through other `*.normal` values which are referencing it**.
+(Yes, this proposal doesn't solve all problems.) In other words, 
+data syncrhonizations might be still needed when concurrently reading the values referenced by `*.fixed` values.
+
 Below, for description convenience, the proposal will call
 * `T` values declared with `var` as `var.normal` values.
 * `T` values declared with `final` as `final.normal` values.
@@ -90,15 +96,9 @@ The **basic assignment/binding rules**:
    In other words, a value of any genre can be assigned to another value of any genre,
    if the two values are both of no-reference types, as long as they satisfy other old assignment requirements.
 
-Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**
-(the core principle of the proposal), it
-**might be modified through other `*.normal` values which are referencing it**.
-(Yes, this proposal doesn't solve all problems.)
-In other words, the immutabilities provided by this proposal are not new ways to avoid data races.
-
 The section to the next will list the detailed rules for values of all kinds of types.
 Those rules are much straightforward and anticipated.
-**They are derived from the above mentioned basic assignment/binding rules.**
+**They are derived from the above mentioned principle and basic assignment/binding rules.**
 
 Please note, the immutability semantics in this proposal is different from the `const` semantics in C/C++.
 For example, a value declared as `var p ***int.fixed` in this proposal is
