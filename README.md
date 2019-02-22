@@ -68,6 +68,8 @@ Please note that, although a value **can't be modified through `*.fixed` values 
 (Yes, this proposal doesn't solve all problems.) In other words, 
 data syncrhonizations might be still needed when concurrently reading the values referenced by `*.fixed` values.
 
+By combining `final` and `fixed`, it is possible to declare true immutable values.
+
 Below, for description convenience, the proposal will call
 * `T` values declared with `var` as `var.normal` values.
 * `T` values declared with `final` as `final.normal` values.
