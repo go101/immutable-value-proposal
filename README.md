@@ -32,7 +32,7 @@ We know each value has a property, `self_modifiable`, which means whether or not
 This proposal will add a new value property `ref_modifiable` for each value, which means
 whether or not the values referenced (either directly or indirectly) by that value are modifiable.
 
-The permutation of thw two properties result 4 genres of values:
+The permutation of thw two properties results 4 genres of values:
 1. `{self_modifiable: true, ref_modifiable: true}`.
    Such as variables.
 1. `{self_modifiable: true, ref_modifiable: false}`.
@@ -46,7 +46,7 @@ The permutation of thw two properties result 4 genres of values:
 (Note, in fact, we can catagory declared function values, method values and constant basic values into either the 3rd or the 4th genre.)
 
 This proposal treats the `self_modifiable` as a direct value property,
-and treats `ref_modifiable` as a type property (an indirect value property).
+and treats `ref_modifiable` as a type property (surely, it is also a value property).
 
 This proposal will let Go support the two value genres the current Go doesn't support,
 and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
@@ -57,18 +57,22 @@ and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
    (Same as JavaScript `const` values and Java `final` values.)
 
 Types with property `{ref_modifiable: false}` are called fixed types.
-The notation `T.fixed` is introduced to represent the fixed version of normal type `T`,
+The notation `T.fixed` is introduced to represent the fixed version of a normal type `T`,
 where `fixed` is a new introduced keyword.
-A value of type `T.fixed` may be modifiable, it is just that the values referenced (either directly or indirectly)
-by the `T.fixed` value can't be modified.
-
-Please note that, although a value **can't be modified through `*.fixed` values which are referencing it**
-(the core principle of the proposal),
-**it is possible to be modified through other `*.normal` values which are referencing it**.
-(Yes, this proposal doesn't solve all problems.) In other words, 
-data syncrhonizations might be still needed when concurrently reading the values referenced by `*.fixed` values.
+A value of type `T.fixed` itself may be modifiable,
+it is just that the values referenced (either directly or indirectly)
+by the `T.fixed` value can't be modified (through the `T.fixed` value).
 
 By combining `final` and `fixed`, it is possible to declare true immutable values.
+
+Later, values of a normal type `T` will be called normal values,
+and values of a normal type `T.fixed` will be called fixed values,
+
+Please note that, although **a value can't be modified through fixed values which are referencing it**
+(the core principle of the proposal),
+**it is possible to be modified through other normal values which are referencing it**.
+(Yes, this proposal doesn't solve all problems.) In other words, 
+data syncrhonizations might be still needed when concurrently reading the values referenced by `*.fixed` values.
 
 Below, for description convenience, the proposal will call
 * `T` values declared with `var` as `var.normal` values.
@@ -80,16 +84,16 @@ Please note that,
 * the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
   whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
 * `fixed` is not allowed to appear in type declarations. `type T []int.fixed` is invalid.
-* the respective fixed types of normal no-reference types (including basic types, fucntion types. struct types with only fields
+* the respective fixed types of normal no-reference types (including basic types, fucntion types, struct types with only fields
   of no-reference types, and array types with no-reference element types) are the normal types themselves.
 
 A notation `v.fixed` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
-The `.fixed` suffix can only follow R-values (right values). 
+The `.fixed` suffix can only follow r-values (right-hand-side values).
 
 The **basic assignment/binding rules**:
-1. `*.normal` values can be bound/assigned to a `*.normal` value.
-1. **A `final.*` value must be bound a value in its declaration**.
+1. A `final.*` value must be bound a value in its declaration.
    After the declaration, it can never be assigned any more.
+1. `*.normal` values can be bound/assigned to a `*.normal` value.
 1. Values of any genres can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
    and the new supported values by this proposal.
 1. Generally, `*.fixed` values can't be bound/assigned to a `*.normal` value, with one exception:
@@ -102,27 +106,28 @@ The section to the next will list the detailed rules for values of all kinds of 
 Those rules are much straightforward and anticipated.
 **They are derived from the above mentioned principle and basic assignment/binding rules.**
 
-Please note, the immutability semantics in this proposal is different from the `const` semantics in C/C++.
+Please note, the immutability semantics in this proposal is different from the `const` semantics in C++.
 For example, a value declared as `var p ***int.fixed` in this proposal is
-like a variable decalared as `int const * const * const * p` in C/C++.
+like a variable decalared as `int const * const * const * p` in C++.
 In C/C++, we can declare a variable as `int * const * const * x`,
 but there are no ways to declare variables with the similar immutabilities in this proposal.
-(In other words, this proposal assumes such use cases are rare in practice.)
+(In other words, this proposal thinks such use cases are rare in practice.)
 
-Another example, the following C code are valid.
-```C
+For example, the following C++ code is valid.
+```C++
 #include <stdio.h>
 
 typedef struct T {
 	int* y;
 } T;
 
-void main() {
+int main() {
 	int a = 123;
 	T t = {.y = &a};
 	const T* p = &t; // <=> T const * p = &t;
 	*p->y = 789; // allowed
 	printf("%d\n", *t.y); // 789
+	return 0;
 }
 ```
 
