@@ -1,4 +1,4 @@
-# A proposal supporting final values and read-only parameters/results
+# A proposal to support final values and read-only parameters/results in Go
 
 Old versions:
 * [the proposal thread](https://github.com/golang/go/issues/29422)
@@ -17,7 +17,7 @@ Any criticisms and improvement ideas are welcome, for
 * I have not much compiler-related knowledge, so the following designs may have flaws.
 * I haven't found a perfect syntax notation set for this proposal yet.
 
-### The problems this proposal tries to solve
+## The problems this proposal tries to solve
 
 The problems this proposal tries to solve:
 1. no ways to declare package-level exported immutable non-basic values.
@@ -25,7 +25,7 @@ The problems this proposal tries to solve:
 
 By solving the two problems, the security and performance of Go programs can be improved much.
 
-### The main points of this proposal
+## The main points of this proposal
 
 We know each value has a property, `self_modifiable`, which means whether or not that value is modifiable.
 
@@ -48,6 +48,8 @@ The permutation of thw two properties results 4 genres of values:
 This proposal treats the `self_modifiable` as a direct value property,
 and treats `ref_modifiable` as a type property (surely, it is also a value property).
 
+#### final values
+
 This proposal will let Go support the two value genres the current Go doesn't support,
 and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
 * `{self_modifiable: true}` values are declared with `var`.
@@ -56,6 +58,8 @@ and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
    the values referenced by the `final` value might be modifiable.
    (Same as JavaScript `const` values and Java `final` values.)
 
+#### fixed bytpes and fixed values
+
 Types with property `{ref_modifiable: false}` are called fixed types.
 The notation `T.fixed` is introduced to represent the fixed version of a normal type `T`,
 where `fixed` is a new introduced keyword.
@@ -63,10 +67,11 @@ A value of type `T.fixed` itself may be modifiable,
 it is just that the values referenced (either directly or indirectly)
 by the `T.fixed` value can't be modified (through the `T.fixed` value).
 
-By combining `final` and `fixed`, it is possible to declare true immutable values.
-
 Later, values of a normal type `T` will be called normal values,
 and values of a normal type `T.fixed` will be called fixed values,
+
+A notation `v.fixed` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
+The `.fixed` suffix can only follow r-values (right-hand-side values).
 
 Please note that, although **a value can't be modified through fixed values which are referencing it**
 (the core principle of the proposal),
@@ -74,21 +79,22 @@ Please note that, although **a value can't be modified through fixed values whic
 (Yes, this proposal doesn't solve all problems.) In other words, 
 data syncrhonizations might be still needed when concurrently reading the values referenced by `*.fixed` values.
 
-Below, for description convenience, the proposal will call
-* `T` values declared with `var` as `var.normal` values.
-* `T` values declared with `final` as `final.normal` values.
-* `T.fixed` values declared with `var` as `var.fixed` values.
-* `T.fixed` values declared with `final` as `final.fixed` values.
-
-Please note that,
+More need to be notes:
 * the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
   whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
 * `fixed` is not allowed to appear in type declarations. `type T []int.fixed` is invalid.
 * the respective fixed types of normal no-reference types (including basic types, fucntion types, struct types with only fields
   of no-reference types, and array types with no-reference element types) are the normal types themselves.
 
-A notation `v.fixed` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
-The `.fixed` suffix can only follow r-values (right-hand-side values).
+#### basic assignment rules
+
+By combining `final` and `fixed`, it is possible to declare true immutable values.
+
+Below, for description convenience, the proposal will call
+* `T` values declared with `var` as `var.normal` values.
+* `T` values declared with `final` as `final.normal` values.
+* `T.fixed` values declared with `var` as `var.fixed` values.
+* `T.fixed` values declared with `final` as `final.fixed` values.
 
 The **basic assignment/binding rules**:
 1. A `final.*` value must be bound a value in its declaration.
@@ -105,6 +111,8 @@ The **basic assignment/binding rules**:
 The section to the next will list the detailed rules for values of all kinds of types.
 Those rules are much straightforward and anticipated.
 **They are derived from the above mentioned principle and basic assignment/binding rules.**
+
+#### the difference from C++ const values
 
 Please note, the immutability semantics in this proposal is different from the `const` semantics in C++.
 For example, a value declared as `var p ***int.fixed` in this proposal is
@@ -152,7 +160,7 @@ func main() {
 }
 ```
 
-### Syntax changes
+## Syntax changes
 
 It is a challenge to design a both simple and readable syntax set for this proposal.
 The current design may be not perfect, so any improvemnt ideas are welcome.
@@ -203,7 +211,7 @@ Short value declaration examples:
 Again, to avoid syntax design complexity, `final.*` values can't be declared in short declartions.
 In other words, values declared in short declarations are always `var.*` values.
 
-### Detailed rules of this proposal
+## Detailed rules of this proposal
 
 #### safe pointers
 
@@ -378,7 +386,7 @@ and the result of an `Elem` method call should inherit the **_fixed_** property
 from the receiver argument. More about reflection.
 For all details on reflection, please read the following reflection section.
 
-### Usage examples
+## Usage examples
 
 ```golang
 var x = []int{1, 2, 3}
@@ -430,7 +438,7 @@ var bytes = []byte.fixed(s) // a clever compiler will not allocate a
 }
 ```
 
-### Compiler implementation
+## Compiler implementation
 
 I'm not familiar with the compiler development things.
 It is just my feeling, by my experience, that the rules mentioned in this proposal
@@ -440,7 +448,7 @@ At compile phase, compiler should maintain two bits for each value.
 One bit means whether or not the value itself can be modified.
 The other bit means whether or not the values referenced by the value can be modified.
 
-### New reflection functions and methods and how to implement them
+## New reflection functions and methods and how to implement them
 
 `reflect.Value` values can only representing `var.*` Go values.
 
@@ -468,7 +476,7 @@ Their respective other properties should be identical.
 
 A method `reflect.Type.Genre` is needed, it may return `Fixed` or `Normal`.
 
-### Unsolved and new problems of this proposal
+## Unsolved and new problems of this proposal
 
 This proposal doesn't guarantee some values referenced by `*.fixed` values will never be modified.
 (This is more a feature than a problem.)
@@ -476,7 +484,7 @@ This proposal doesn't guarantee some values referenced by `*.fixed` values will 
 This proposal will make `bytes.TrimXXX` (and some others) functions need some duplicate versions for normal and fixed arguments.
 This problem should be solved by future possible generics feature.
 
-### Go 1 incompatible cases
+## Go 1 incompatible cases
 
 The followings are the incompatible cases I'm aware of now.
 1. `final` and `fixed` may be used as non-exported identifiers in old user code.
