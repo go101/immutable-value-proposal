@@ -96,7 +96,7 @@ Below, for description convenience, the proposal will call
 * `T.fixed` values declared with `var` as `var.fixed` values.
 * `T.fixed` values declared with `final` as `final.fixed` values.
 
-The **basic assignment/binding rules**:
+The basic assignment/binding rules:
 1. A `final.*` value must be bound a value in its declaration.
    After the declaration, it can never be assigned any more.
 1. `*.normal` values can be bound/assigned to a `*.normal` value.
@@ -110,7 +110,7 @@ The **basic assignment/binding rules**:
 
 The section to the next will list the detailed rules for values of all kinds of types.
 Those rules are much straightforward and anticipated.
-**They are derived from the above mentioned principle and basic assignment/binding rules.**
+**_They are derived from the above mentioned principle and basic assignment/binding rules._**
 
 #### the difference from C++ const values
 
