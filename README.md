@@ -168,11 +168,11 @@ The current design may be not perfect, so any improvemnt ideas are welcome.
 Some examples of the full value declaration form:
 ```golang
 final FileNotExist = errors.New("file not exist").fixed  // a value which can't be modified in any way
-final FileNotExist .fixed = errors.New("file not exist") // equivalent to the above line
+final FileNotExist fixed = errors.New("file not exist") // equivalent to the above line
 
 // The following declarations are equivalent.
 var a []int.fixed = []int{1, 2, 3}
-var a .fixed = []int{1, 2, 3}
+var a fixed = []int{1, 2, 3}
 var a = []int{1, 2, 3}.fixed
 
 // The following declarations are equivalent (for no-reference types only).
@@ -199,7 +199,7 @@ Short value declaration examples:
 ```golang
 {
 	oldA, newB := va, vb.fixed
-	oldA, newB := va, (.fixed)(vb) // equivalent to the above line
+	oldA, newB := va, (fixed)(vb) // equivalent to the above line
 
 	newX, oldY := (Tx.fixed)(va), vy
 	newX, oldY := (Tx(va)).fixed, vy
@@ -222,11 +222,32 @@ In other words, values declared in short declarations are always `var.*` values.
 
 Yes, `final.*` values may be addressable.
 
+Example:
+```golang
+final x = []int{1, 2, 3}
+
+func foo() {
+	y := &x  // y is var.fixed value of type *[]int.fixed
+	z := *y  // *y is a final.fixed value, but
+	         // z is deduced as a var.fixed value.
+	z[0] = 9 // error: z is a fixed value
+	w := &z  // w is a var.fixed value (of type *[]int.fixed)
+	...
+}
+```
+
 #### unsafe pointers
 
-* Dereferences of an unsafe pointer are always `var.normal` values,
-even if the unsafe pointer is a `*.fixed` value.
-(This is important for reflection implementation.)
+* Fixed pointers and normal pointers can be both converted to unsafe pointers.
+  This means the read-only rules built by this proposal can be broken by the unsafe mechanism.
+  (This is important for reflection implementation.)
+
+Example:
+```golang
+func mut(x []int.fixed) []int {
+	return *((*[]int)(unsafe.Pointer(&x)))
+}
+```
 
 #### structs
 
@@ -236,7 +257,7 @@ even if the unsafe pointer is a `*.fixed` value.
 * Fields of `final.normal` struct values are `final.normal` values.
 
 NOTE, there is [a pending design](https://github.com/golang/go/issues/29422#issuecomment-463427397)
-to support specified immutabilities for struct fields.
+to support specified value properties for struct fields.
 
 #### arrays
 
@@ -251,19 +272,101 @@ to support specified immutabilities for struct fields.
 * Elements of `*.normal` slice values are `var.normal` values.
 * We can't append elements to `*.fixed` slice values.
 * Subslice:
-  * The subslice result of a `final.fixed` slice is still a `final.fixed` slice.
-  * The subslice result of a `final.normal` slice is still a `final.normal` slice.
-  * The subslice result of a `var.fixed` slice is still a `var.fixed` slice.
-  * The subslice result of a `var.normal` slice or array is a `var.normal` slice.
+  * The subslice result of a `*.fixed` slice is still a `final.fixed` slice.
+  * The subslice result of a `*.normal` slice is still a `final.normal` slice.
   * The subslice result of a `final.*` or `*.fixed` array is a `var.fixed` slice.
     Some certain write permmisions may be lost in the process.
+
+Example 1:
+```golang
+type T struct {
+	a int
+	b *int
+}
+
+// The type of x is []T.fixed.
+var x = []T{{123, nil}, {789, new(int)}}.fixed
+
+func foo() {
+	x[0] = nil   // error: x is a fixed value
+	x[0].a = 567 // error: x[0] is a final value
+	y := x[0]    // x[0] is a final.fixed value, but y is deduced
+	             // as a var.fixed value (of type T.fixed).
+	y.a = 567    // ok
+	*y.b = 567   // error: y.b is a fixed value
+	y.b = nil    // ok
+	z := x[:1]   // z is var.fxied value (of type []T.fixed)
+	x = nil      // ok
+	y = T{}      // ok
+	
+	final w = x // w is a final.fixed value
+	u := w[:]   // w[:] is a final.fixed value, but
+	            // u is deduced as a var.fixed value.
+	
+	// v is a final.normal value.
+	final v = []T{{123, nil}, {789, new(int)}}
+	v = nil    // error: v is a final value
+	v[1] = T{} // ok
+	
+	_ = append(u, T{}) // error: can't append to fixed slices
+	_ = append(v, T{}) // ok
+	
+	...
+}
+```
+
+Example 2:
+```golang
+var x = []int{1, 2, 3}
+
+// External packages have no ways to modify elements of x (through S).
+final S = x.fixed // ok.
+
+// The elements of R even can't be modified in current package!
+// It is a true immutable value.
+final R = []int{7, 8, 9}.fixed
+
+// Q itself can't be modified, but its elements can.
+final Q = []int{7, 8, 9}
+```
+
+Example 3:
+```golang
+var s = "hello word"
+var bytes = []byte.fixed(s) // a clever compiler will not allocate a
+                            // duplicate underlying byte sequence here.
+{
+	pw := &s[6] // pw is a `var.fixed` poiner whose base type is "byte".
+}
+```
 
 #### maps
 
 * Elements of `*.fixed` map values are `final.fixed` values.
-* Elements of `*.normal` map values are `var.normal` values.
+* Elements of `*.normal` map values are `final.normal` values.
+  (Although map elements are final values, each of they can be replaced as a while.)
 * We can't append new entries to (or replace entries of,
   or delete old entries from) `*.fixed`  map values.
+
+Example:
+```golang
+type T struct {
+	a int
+	b *int
+}
+
+// x is a true immutable value.
+final x = map[string]T{"foo": T{a: 123, b: new(int)}}.fixed
+
+func bar(v map[string]T.fixed) { // v is a var.fixed value
+	// Both v["foo"] and v["foo"].b are fixed values.
+	*v["foo"].b = 789 // error: v["foo"].b is a fixed map
+	v["foo"] = T{}    // error: v["foo"] is a fixed map
+	v["baz"] = T{}    // error: v["foo"] is a fixed map
+}
+
+bar(x) // ok
+```
 
 #### channels
 
@@ -275,6 +378,21 @@ to support specified immutabilities for struct fields.
   * We can't receive values from `final.*` channels.
   * Receiving from a `*.normal` channel results a `*.normal` value.
   * Receiving from a `*.fixed` channel results a `*.fixed` value.
+
+Example:
+```golang
+var x = new(int)
+final ch = make(chain *int, 1)
+
+func foo(c chan *int.fixed) {
+	x := <-c // ok. x is a var.fixed value (of type *int.fixed)
+	y := new(int)
+	c <- y  // ok
+	ch <- x // error: ch is a final channel
+	<-ch    // error: ch is a final channel
+	...
+}
+```
 
 #### functions
 
@@ -378,6 +496,17 @@ then the fixed type `T.fixed` also implements the fixed interface type `I.fixed`
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
 
+Example:
+```golang
+var x = []int{1, 2, 3}
+var y = [][]int{x, x}.fixed // ok
+var v interface{} = y       // error: can't assign a fixed value to a normal value.
+var v interface{}.fixed = y // ok
+var w = v.([][]int)         // ok, w is a var.fixed value (of type [][]int.fixed)
+v = x                       // ok
+var u = v.([]int)           // ok, u is a var.fixed value (of type []int.fixed)
+```
+
 #### reflection
 
 Many function and method implementations in the `refect` package should be modified accordingly.
@@ -385,58 +514,6 @@ The `refect.Value` type shoud have an **_fixed_** property,
 and the result of an `Elem` method call should inherit the **_fixed_** property
 from the receiver argument. More about reflection.
 For all details on reflection, please read the following reflection section.
-
-## Usage examples
-
-```golang
-var x = []int{1, 2, 3}
-var y [][]int.fixed
-y = [][]int{x, x} // ok
-
-x[1] = 123    // ok
-y[0][1] = 123 // error: y is a var.fixed value.
-var z = y[0]  // ok, z is also a var.fixed value.
-z[0] = 123    // error: z is a var.fixed value.
-
-p := &z[0]   // ok. p is a var.fixed value.
-*p = 123     // error: p is a var.fixed value.
-x[0] = *p    // ok
-p = new(int) // ok
-
-var y2 = [][]int{z, x} // like y, y2 is also a [][]int.fixed value.
-                       // A composite literal is a fixed value
-                       // as long as one of its elements is fixed.
-
-var v interface{} = y       // error: can't assign a fixed value to a normal value.
-var v interface{}.fixed = y // ok
-var w = v.([][]int)         // ok, w is a var.fixed value
-v = x                       // ok
-var u = x.fixed             // ok, u is a var.fixed value
-
-// S is exported, external packages have no ways to modify x (through S).
-final S = x.fixed // ok.
-S = x             // error: can't assign to a final value.
-t := S[:]         // ok, t is a var.fixed value. S[:] is a final.fixed value.
-_ = append(t, 4)  // error: can't append to a fixed slice value.
-
-// The elements of R even can't be modified in current package!
-final R = []int{7, 8, 9}.fixed
-R[1] = 888 // error: elements of fixed slices are final values.
-
-// Q can't be modified, but its elements can.
-final Q = []int{7, 8, 9}
-Q[1]= 888 // ok
-```
-
-Another one:
-```golang
-var s = "hello word"
-var bytes = []byte.fixed(s) // a clever compiler will not allocate a
-                            // duplicate underlying byte sequence here.
-{
-	pw := &s[6] // pw is a `var.fixed` poiner whose base type is "byte".
-}
-```
 
 ## Compiler implementation
 
