@@ -1,4 +1,4 @@
-# An immutable Go values and read-only Go types proposal
+# A proposal supporting final values and read-only parameters/results
 
 Old versions:
 * [the proposal thread](https://github.com/golang/go/issues/29422)
