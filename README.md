@@ -45,20 +45,29 @@ The permutation of thw two properties results 4 genres of values:
 
 (Note, in fact, we can catagory declared function values, method values and constant basic values into either the 3rd or the 4th genre.)
 
-This proposal treats the `self_modifiable` as a direct value property,
-and treats `ref_modifiable` as a type property (surely, it is also a value property).
+This proposal will let Go support the two value genres the current Go doesn't support,
+and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
 
 #### final values
 
-This proposal will let Go support the two value genres the current Go doesn't support,
-and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
-* `{self_modifiable: true}` values are declared with `var`.
-* `{self_modifiable: false}` values are declared with `final` (a new keyword).
+This proposal treats the `self_modifiable` as a direct value property.
+A **_final value_** concept is introduced.
+* `{self_modifiable: true}` values (variables) are declared with `var`.
+* `{self_modifiable: false}` values (finals) are declared with `final` (a new keyword).
    Please note that, although a `final` value itself can't be modified,
    the values referenced by the `final` value might be modifiable.
    (Same as JavaScript `const` values and Java `final` values.)
 
-#### fixed bytpes and fixed values
+All intermediate results in Go should be viewed as final values,
+including function returns, operator operation evaluation results,
+explicit value conversion results, etc.
+
+Final values can be addressable, or not.
+
+#### fixed types and fixed values
+
+This proposal treats `ref_modifiable` as a type property.
+Surely, it is also a value property.
 
 Types with property `{ref_modifiable: false}` are called fixed types.
 The notation `T.fixed` is introduced to represent the fixed version of a normal type `T`,
@@ -167,12 +176,11 @@ The current design may be not perfect, so any improvemnt ideas are welcome.
 
 Some examples of the full value declaration form:
 ```golang
-final FileNotExist = errors.New("file not exist").fixed  // a value which can't be modified in any way
-final FileNotExist fixed = errors.New("file not exist") // equivalent to the above line
+// A true immutable value which can't be modified in any (safe) way.
+final FileNotExist = errors.New("file not exist").fixed  
 
-// The following declarations are equivalent.
+// The following two declarations are equivalent.
 var a []int.fixed = []int{1, 2, 3}
-var a fixed = []int{1, 2, 3}
 var a = []int{1, 2, 3}.fixed
 
 // The following declarations are equivalent (for no-reference types only).
@@ -198,9 +206,9 @@ To avoid syntax design complexity, `final.*` parameters and results are not supp
 Short value declaration examples:
 ```golang
 {
-	oldA, newB := va, vb.fixed
-	oldA, newB := va, (fixed)(vb) // equivalent to the above line
+	oldA, newB := va, vb.fixed // newB is a var.fixed value
 
+	// Explicit conversions.
 	newX, oldY := (Tx.fixed)(va), vy
 	newX, oldY := (Tx(va)).fixed, vy
 	newX, oldY := Tx(va.fixed), vy
@@ -483,7 +491,7 @@ then the fixed type `T.fixed` also implements the fixed interface type `I.fixed`
 
 * Dynamic type
   * The dynamic type of a `*.normal` interface value is a normal type.
-  * The dynamic type of a `*.fixed` interface value is an fixed type.
+  * The dynamic type of a `*.fixed` interface value is a fixed type.
 * Box
   * No values can be boxed into `final.*` interface values (except the initial bound values).
   * `*.fixed` values can't be boxed into `var.normal` interface values.
@@ -518,7 +526,8 @@ For all details on reflection, please read the following reflection section.
 ## Compiler implementation
 
 I'm not familiar with the compiler development things.
-It is just my feeling, by my experience, that the rules mentioned in this proposal
+It is just my feeling, by my experience,
+that most of the rules mentioned in this proposal
 can be enforced by compiler without big technology obstacles.
 
 At compile phase, compiler should maintain two bits for each value.
@@ -527,24 +536,24 @@ The other bit means whether or not the values referenced by the value can be mod
 
 ## New reflection functions and methods and how to implement them
 
-`reflect.Value` values can only representing `var.*` Go values.
+The current `reflect.Value.CanSet` method will report whether or not a value can be modified.
 
-A `reflect.FixedValueOf` function is needed to create `reflect.Value` values representing `var.fixed` Go values.
+A `reflect.FixedValueOf` function is needed to create `reflect.Value` values representing `*.fixed` Go values.
 Its prototype is
 ```golang
 func FixedValueOf(i interface{}.fixed) Value
 ```
-
-In implementaion, one bit should be borrowed from the 23+ bits method number to represent the `fixed` proeprty.
+For the standard Go compiler, in implementaion,
+one bit should be borrowed from the 23+ bits method number to represent the `fixed` proeprty.
 
 All parameters of type `reflect.Value` of the functions and methods in the `reflect` package,
 including receiver parameters, should be declared as `var.fixed` values.
 However, the `reflect.Value` return results should be declared as `var.normal` values.
 
-A `reflect.Value.ToFixed` method is needed to make a `reflect.Value` value represent a `var.fixed` Go value.
+A `reflect.Value.ToFixed` method is needed to make a `reflect.Value` value represent a `final.fixed` Go value.
 
-A `reflect.Value.FixedInterface` method is needed, it returns a `var.fixed` interface value.
-The old `Interface` method panics on `var.fixed` values.
+A `reflect.Value.FixedInterface` method is needed, it returns a `final.fixed` interface value.
+The old `Interface` method panics on `*.fixed` values.
 
 A method `reflect.Type.Fixed` is needed to get the fixed version of a normal type.
 A method `reflect.Type.Normal` is needed to get the normal version of a fixed type.
