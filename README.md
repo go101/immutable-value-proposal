@@ -62,12 +62,12 @@ All intermediate results in Go should be viewed as final values,
 including function returns, operator operation evaluation results,
 explicit value conversion results, etc.
 
-Final values can be addressable, or not.
+Final values may be addressable, or not.
 
 #### fixed types and fixed values
 
 This proposal treats `ref_modifiable` as a type property.
-Surely, it is also a value property.
+Surely, it is also an (indirect) value property.
 
 Types with property `{ref_modifiable: false}` are called fixed types.
 The notation `T.fixed` is introduced to represent the fixed version of a normal type `T`,
@@ -82,12 +82,6 @@ and values of a normal type `T.fixed` will be called fixed values,
 A notation `v.fixed` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
 The `.fixed` suffix can only follow r-values (right-hand-side values).
 
-Please note that, although **a value can't be modified through fixed values which are referencing it**
-(the core principle of the proposal),
-**it is possible to be modified through other normal values which are referencing it**.
-(Yes, this proposal doesn't solve all problems.) In other words, 
-data syncrhonizations might be still needed when concurrently reading the values referenced by `*.fixed` values.
-
 More need to be notes:
 * the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
   whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
@@ -95,15 +89,26 @@ More need to be notes:
 * the respective fixed types of normal no-reference types (including basic types, fucntion types, struct types with only fields
   of no-reference types, and array types with no-reference element types) are the normal types themselves.
 
-#### basic assignment rules
-
-By combining `final` and `fixed`, it is possible to declare true immutable values.
+#### about final, fixed and immutable values
 
 Below, for description convenience, the proposal will call
 * `T` values declared with `var` as `var.normal` values.
 * `T` values declared with `final` as `final.normal` values.
 * `T.fixed` values declared with `var` as `var.fixed` values.
 * `T.fixed` values declared with `final` as `final.fixed` values.
+
+Please note, (as above has mentioned, but here I would repeat it)
+* A value can't be modified through fixed values which are referencing it,
+  but it is possible to be modified through other normal values which are referencing it.
+  In other words, data syncrhonizations might be still needed when concurrently reading the values referenced by `*.fixed` values.
+* A final value is an immutable value, but the immutability is only limited to the final value itself.
+  The values referenced by the final value may be mutable if they are referenced by some normal values.
+  Concurrent reading of a final value itself doesn't need to do data syncrhonizations.
+
+If a value is only referenced by fixed values, then this value is also an immutable value.
+There are no (safe) ways to modify it.
+
+#### basic assignment rules
 
 The basic assignment/binding rules:
 1. A `final.*` value must be bound a value in its declaration.
@@ -458,7 +463,7 @@ type I interface {
 }
 ```
 
-Similar to non-interface type, if a fixed interface type explicitly specified an read-only method `fixed.M`,
+Similar to non-interface type, if a fixed interface type explicitly specified a read-only method `fixed.M`,
 it also implicitly specifies a normal method with the same name `M`.
 
 The method set specified by type `I` contains three methods, `M0`, `fixed.M2` and `M2`.
@@ -513,12 +518,13 @@ var v interface{}.fixed = y // ok
 var w = v.([][]int)         // ok, w is a var.fixed value (of type [][]int.fixed)
 v = x                       // ok
 var u = v.([]int)           // ok, u is a var.fixed value (of type []int.fixed)
+var u = v.([]int.fixed)     // ok, equivalent to the above one, for v is fixed.
 ```
 
 #### reflection
 
 Many function and method implementations in the `refect` package should be modified accordingly.
-The `refect.Value` type shoud have an **_fixed_** property,
+The `refect.Value` type shoud have a **_fixed_** property,
 and the result of an `Elem` method call should inherit the **_fixed_** property
 from the receiver argument. More about reflection.
 For all details on reflection, please read the following reflection section.
