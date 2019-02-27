@@ -540,6 +540,16 @@ At compile phase, compiler should maintain two bits for each value.
 One bit means whether or not the value itself can be modified.
 The other bit means whether or not the values referenced by the value can be modified.
 
+At compile phase, **_read-only_** is not represented as a type property.
+
+### Runtime implementation
+
+Beside the next to be explained reflection part, the inpact on runtime
+made by this proposal is not large. 
+
+Each internal method value should maintain a `fixed` property.
+This information is useful when boxing a fixed value into an intrface.
+
 ## New reflection functions and methods and how to implement them
 
 The current `reflect.Value.CanSet` method will report whether or not a value can be modified.
