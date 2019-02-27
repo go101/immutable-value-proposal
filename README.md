@@ -82,14 +82,14 @@ and values of a normal type `T.fixed` will be called fixed values,
 A notation `v.fixed` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
 The `.fixed` suffix can only follow r-values (right-hand-side values).
 
-More need to be notes:
+More need to be noted:
 * the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
   whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
 * `fixed` is not allowed to appear in type declarations. `type T []int.fixed` is invalid.
 * the respective fixed types of normal no-reference types (including basic types, fucntion types, struct types with only fields
   of no-reference types, and array types with no-reference element types) are the normal types themselves.
 
-#### about final, fixed and immutable values
+#### about final, fixed, and immutable values
 
 Below, for description convenience, the proposal will call
 * `T` values declared with `var` as `var.normal` values.
@@ -408,8 +408,8 @@ func bar(v map[string]T.fixed) { // v is a var.fixed value
   * We can only send `*.normal` values to a `var.normal` channel.
 * Receive
   * We can't receive values from `final.*` channels.
-  * Receiving from a `*.normal` channel results a `*.normal` value.
-  * Receiving from a `*.fixed` channel results a `*.fixed` value.
+  * Receiving from a `*.normal` channel results a `final.normal` value.
+  * Receiving from a `*.fixed` channel results a `final.fixed` value.
 
 Example:
 ```golang
@@ -521,9 +521,9 @@ then the fixed type `T.fixed` also implements the fixed interface type `I.fixed`
   * `*.fixed` values can't be boxed into `var.normal` interface values.
   * Values of any genres can be boxed into a `var.fixed` interface value.
 * Assert
-  * A type assertion on a `*.fixed` interface value results a `*.fixed` value.
+  * A type assertion on a `*.fixed` interface value results a `final.fixed` value.
     For such an assertion, its syntax form `x.(T.fixed)` can be simplified as `x.(T)`.
-  * A type assertion on a `*.normal` interface value results a `*.normal` value.
+  * A type assertion on a `*.normal` interface value results a `final.normal` value.
 
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
@@ -563,7 +563,7 @@ At compile phase, **_read-only_** is not represented as a type property.
 
 ### Runtime implementation
 
-Beside the next to be explained reflection section, the inpact on runtime
+Beside the next to be explained reflection section, the impact on runtime
 made by this proposal is not large. 
 
 Each internal method value should maintain a `fixed` property.
