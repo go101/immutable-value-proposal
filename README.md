@@ -358,6 +358,8 @@ var bytes = []byte.fixed(s) // a clever compiler will not allocate a
 * Elements of `*.fixed` map values are `final.fixed` values.
 * Elements of `*.normal` map values are `final.normal` values.
   (Although map elements are final values, each of they can be replaced as a while.)
+* Keys (exposed in for-range) of `*.fixed` map values are `final.fixed` values.
+* Keys (exposed in for-range) of `*.normal` map values are `final.normal` values.
 * We can't append new entries to (or replace entries of,
   or delete old entries from) `*.fixed`  map values.
 
@@ -371,14 +373,31 @@ type T struct {
 // x is a true immutable value.
 final x = map[string]T{"foo": T{a: 123, b: new(int)}}.fixed
 
+bar(x) // ok
+
 func bar(v map[string]T.fixed) { // v is a var.fixed value
 	// Both v["foo"] and v["foo"].b are fixed values.
 	*v["foo"].b = 789 // error: v["foo"].b is a fixed map
 	v["foo"] = T{}    // error: v["foo"] is a fixed map
 	v["baz"] = T{}    // error: v["foo"] is a fixed map
+	
+	// m will be deduced as a var.fixed value.
+	// That means as long as one element or one key is fixed
+	// in a map literal, then the map value is a fixed value.
+	m := map[*int]*int {
+		new(int): new(int).fixed,
+		new(int): new(int),
+		new(int): new(int),
+	}
+	for a, b := range m {
+		// a and b are both var.fixed values.
+		// Their types are *int.fixed.
+		
+		*a = 123 // error: a is a fixed value
+		*b = 789 // error: b is a fixed value
+	}
 }
 
-bar(x) // ok
 ```
 
 #### channels
@@ -544,11 +563,11 @@ At compile phase, **_read-only_** is not represented as a type property.
 
 ### Runtime implementation
 
-Beside the next to be explained reflection part, the inpact on runtime
+Beside the next to be explained reflection section, the inpact on runtime
 made by this proposal is not large. 
 
 Each internal method value should maintain a `fixed` property.
-This information is useful when boxing a fixed value into an intrface.
+This information is useful when boxing a fixed value into an interface.
 
 ## New reflection functions and methods and how to implement them
 
