@@ -99,21 +99,21 @@ If a final value isn't referenced by any normal value,
 then there are no (safe) ways to modifiy it,
 so the final value is a true immutable value.
 
-A declared final is guaranteed not to be referenced by any normal value.
-So it is a true immutable value.
-
-If the expression `[]int{1, 2, 3}.fixed` is used as the initial value of a declared fixed slice value,
-the all the elements of the slice are guaranteed not to be referenced by any normal value.
-So they are all true immutable values.
-
 Repeat it again, although a final value can't be modified through the fixed values
 which are referencing it, it is possible to be modified through other normal values which are referencing it.
-In other words, a value hosted at a specified memory address may represent as a final or a variable, depending on different scenarios.
-Similarly, a value hosted at a specified memory address may represent as fixed or normal, depending on different scenarios.
+In other words, some value hosted at a specified memory address may represent as a final or a variable, depending on different scenarios.
+Similarly, some value hosted at a specified memory address may represent as fixed or normal, depending on different scenarios.
+
+However, there are some true immutable values cases supported by this propsoal:
+1. A declared final is guaranteed not to be referenced by any normal value.
+   So it is a true immutable value.
+1. If the expression `[]int{1, 2, 3}.fixed` is used as the initial value of a declared fixed slice value,
+   the all the elements of the slice are guaranteed not to be referenced by any normal value.
+   So they are all true immutable values.
 
 Data synchronizations are still needed when concurrently reading
 a final which is not a true immutable value.
-But if a final isn't referenced by any normal value,
+But if a final is a true immutable value,
 then there are no (safe) ways to modifiy it,
 so concurrently reading it doesn't need data synchronization.
 
