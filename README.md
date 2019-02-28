@@ -108,6 +108,7 @@ So they are all true immutable values.
 
 Repeat it again, although a final value can't be modified through the fixed values
 which are referencing it, it is possible to be modified through other normal values which are referencing it.
+In other words, a value may represent as a final or a variable, depending on different scenarios.
 
 Data synchronizations are still needed when concurrently reading
 a fina which is not a true immutable value.
