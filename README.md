@@ -112,7 +112,7 @@ In other words, a value hosted at a specified memory address may represent as a 
 Similarly, a value hosted at a specified memory address may represent as fixed or normal, depending on different scenarios.
 
 Data synchronizations are still needed when concurrently reading
-a fina which is not a true immutable value.
+a final which is not a true immutable value.
 But if a final isn't referenced by any normal value,
 then there are no (safe) ways to modifiy it,
 so concurrently reading it doesn't need data synchronization.
