@@ -91,24 +91,37 @@ More need to be noted:
 
 #### about final, fixed, and immutable values
 
+A value is either a variable or a final. A value is either fixed or normal.
+
+From the view of a fixed value, all values referenced by it are both final and fixed values.
+
+If a final value isn't referenced by any normal value,
+then there are no (safe) ways to modifiy it,
+so the final value is a true immutable value.
+
+A declared final is guaranteed not to be referenced by any normal value.
+So it is a true immutable value.
+
+If the expression `[]int{1, 2, 3}.fixed` is used as the initial value of a declared fixed slice value,
+the all the elements of the slice are guaranteed not to be referenced by any normal value.
+So they are all true immutable values.
+
+Repeat it again, although a final value can't be modified through the fixed values
+which are referencing it, it is possible to be modified through other normal values which are referencing it.
+
+Data synchronizations are still needed when concurrently reading
+a fina which is not a true immutable value.
+But if a final isn't referenced by any normal value,
+then there are no (safe) ways to modifiy it,
+so concurrently reading it doesn't need data synchronization.
+
+#### basic assignment rules
+
 Below, for description convenience, the proposal will call
 * `T` values declared with `var` as `var.normal` values.
 * `T` values declared with `final` as `final.normal` values.
 * `T.fixed` values declared with `var` as `var.fixed` values.
 * `T.fixed` values declared with `final` as `final.fixed` values.
-
-Please note, (as above has mentioned, but here I would repeat it)
-* A value can't be modified through fixed values which are referencing it,
-  but it is possible to be modified through other normal values which are referencing it.
-  In other words, data syncrhonizations might be still needed when concurrently reading the values referenced by `*.fixed` values.
-* A final value is an immutable value, but the immutability is only limited to the final value itself.
-  The values referenced by the final value may be mutable if they are referenced by some normal values.
-  Concurrent reading of a final value itself doesn't need to do data syncrhonizations.
-
-If a value is only referenced by fixed values, then this value is also an immutable value.
-There are no (safe) ways to modify it.
-
-#### basic assignment rules
 
 The basic assignment/binding rules:
 1. A `final.*` value must be bound a value in its declaration.
@@ -185,6 +198,7 @@ Some examples of the full value declaration form:
 final FileNotExist = errors.New("file not exist").fixed  
 
 // The following two declarations are equivalent.
+// Note, the elements of "a" are all true immutable values.
 var a []int.fixed = []int{1, 2, 3}
 var a = []int{1, 2, 3}.fixed
 
