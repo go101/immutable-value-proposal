@@ -93,11 +93,14 @@ More need to be noted:
 
 A value is either a variable or a final. A value is either fixed or normal.
 
-The relation of final and fixed values is:
+The relations of final and fixed values are:
 * the values referenced by fixed values are final values.
-* taking addresses of (addressable) final values are fixed values.
+* taking addresses of (addressable) final values results fixed values.
 
-From the view of a fixed value, all values referenced by it are both final and fixed values.
+From the view of a fixed value, all values referenced by it, either directly or indirectly, are both final and fixed values.
+
+Taking addresses of (addressable) fixed values results fixed values too.
+(For safety, in the process, some write permissions may be lost.)
 
 Repeat it again, although a final value can't be modified through the fixed values
 which are referencing it, it is possible to be modified through other normal values which are referencing it.
@@ -582,7 +585,7 @@ The other bit means whether or not the values referenced by the value can be mod
 
 At compile phase, **_read-only_** is not represented as a type property.
 
-### Runtime implementation
+## Runtime implementation
 
 Except the next to be explained reflection section, the impact on runtime
 made by this proposal is not large.
@@ -616,7 +619,7 @@ A method `reflect.Type.Normal` is needed to get the normal version of a fixed ty
 The method sets of normal type `T` and fixed type `T.fixed` may be different.
 Their respective other properties should be identical.
 
-A method `reflect.Type.Genre` is needed, it may return `Fixed` or `Normal`.
+A method `reflect.Type.Genre` is needed, it may return `Fixed` or `Normal` (two constants).
 
 ## Unsolved and new problems of this proposal
 
