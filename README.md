@@ -85,7 +85,7 @@ The `.fixed` suffix can only follow r-values (right-hand-side values).
 More need to be noted:
 * the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
   whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
-* `fixed` is not allowed to appear in type declarations. `type T []int.fixed` is invalid.
+* `fixed` is not allowed to appear in type declarations. For example, `type T []int.fixed` is invalid.
 * the respective fixed types of normal no-reference types (including basic types, fucntion types, struct types with only fields
   of no-reference types, and array types with no-reference element types) are the normal types themselves.
 
@@ -95,21 +95,22 @@ A value is either a variable or a final. A value is either fixed or normal.
 
 From the view of a fixed value, all values referenced by it are both final and fixed values.
 
-If a final value isn't referenced by any normal value,
-then there are no (safe) ways to modifiy it,
-so the final value is a true immutable value.
-
 Repeat it again, although a final value can't be modified through the fixed values
 which are referencing it, it is possible to be modified through other normal values which are referencing it.
 In other words, some value hosted at a specified memory address may represent as a final or a variable, depending on different scenarios.
 Similarly, some value hosted at a specified memory address may represent as fixed or normal, depending on different scenarios.
 
-However, there are some true immutable values cases supported by this propsoal:
+If a final value isn't referenced by any normal value,
+then there are no (safe) ways to modifiy it,
+so the final value is a true immutable value.
+For example,
 1. A declared final is guaranteed not to be referenced by any normal value.
    So it is a true immutable value.
 1. If the expression `[]int{1, 2, 3}.fixed` is used as the initial value of a declared fixed slice value,
-   the all the elements of the slice are guaranteed not to be referenced by any normal value.
+   then all the elements of the slice are guaranteed not to be referenced by any normal value.
    So they are all true immutable values.
+1. Some fixed function return results. (If the doc of the function clearly says the results will
+   not be referenced by any normal value after the function exits.)
 
 Data synchronizations are still needed when concurrently reading
 a final which is not a true immutable value.
@@ -259,7 +260,7 @@ func foo() {
 	y := &x  // y is var.fixed value of type *[]int.fixed
 	z := *y  // *y is a final.fixed value, but
 	         // z is deduced as a var.fixed value.
-	z[0] = 9 // error: z is a fixed value
+	z[0] = 9 // error: z[0] is a final value
 	w := &z  // w is a var.fixed value (of type *[]int.fixed)
 	...
 }
@@ -317,7 +318,7 @@ type T struct {
 var x = []T{{123, nil}, {789, new(int)}}.fixed
 
 func foo() {
-	x[0] = nil   // error: x is a fixed value
+	x[0] = nil   // error: x[0] is a final value
 	x[0].a = 567 // error: x[0] is a final value
 	y := x[0]    // x[0] is a final.fixed value, but y is deduced
 	             // as a var.fixed value (of type T.fixed).
@@ -393,7 +394,7 @@ bar(x) // ok
 
 func bar(v map[string]T.fixed) { // v is a var.fixed value
 	// Both v["foo"] and v["foo"].b are fixed values.
-	*v["foo"].b = 789 // error: v["foo"].b is a fixed map
+	*v["foo"].b = 789 // error: v["foo"].b is a fixed value
 	v["foo"] = T{}    // error: v["foo"] is a fixed map
 	v["baz"] = T{}    // error: v["foo"] is a fixed map
 	
@@ -579,8 +580,8 @@ At compile phase, **_read-only_** is not represented as a type property.
 
 ### Runtime implementation
 
-Beside the next to be explained reflection section, the impact on runtime
-made by this proposal is not large. 
+Except the next to be explained reflection section, the impact on runtime
+made by this proposal is not large.
 
 Each internal method value should maintain a `fixed` property.
 This information is useful when boxing a fixed value into an interface.
