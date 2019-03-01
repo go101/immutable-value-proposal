@@ -102,10 +102,9 @@ From the view of a fixed value, all values referenced by it, either directly or 
 Taking addresses of (addressable) fixed values results fixed values too.
 (For safety, in the process, some write permissions may be lost.)
 
-Repeat it again, although a final value can't be modified through the fixed values
-which are referencing it, it is possible to be modified through other normal values which are referencing it.
-In other words, some value hosted at a specified memory address may represent as a final or a variable, depending on different scenarios.
+Note, some value hosted at a specified memory address may represent as a final or a variable, depending on different scenarios.
 Similarly, some value hosted at a specified memory address may represent as fixed or normal, depending on different scenarios.
+This means a final value may be not a true immutable value.
 
 If a final value isn't referenced by any normal value,
 then there are no (safe) ways to modifiy it,
@@ -285,16 +284,6 @@ func mut(x []int.fixed) []int {
 	return *((*[]int)(unsafe.Pointer(&x)))
 }
 ```
-
-#### structs
-
-* Fields of `var.fixed` struct values are `var.fixed` values.
-* Fields of `var.normal` struct values are `var.normal` values.
-* Fields of `final.fixed` struct values are `final.fixed` values.
-* Fields of `final.normal` struct values are `final.normal` values.
-
-NOTE, there is [a pending design](https://github.com/golang/go/issues/29422#issuecomment-463427397)
-to support specified value properties for struct fields.
 
 #### arrays
 
@@ -562,6 +551,61 @@ var w = v.([][]int)         // ok, w is a var.fixed value (of type [][]int.fixed
 v = x                       // ok
 var u = v.([]int)           // ok, u is a var.fixed value (of type []int.fixed)
 var u = v.([]int.fixed)     // ok, equivalent to the above one, for v is fixed.
+```
+
+#### structs
+
+Like arrays, generally,
+* Fields of `var.fixed` struct values are `var.fixed` values.
+* Fields of `var.normal` struct values are `var.normal` values.
+* Fields of `final.fixed` struct values are `final.fixed` values.
+* Fields of `final.normal` struct values are `final.normal` values.
+
+However, sometimes we desire some fields of a struct value are always writable,
+even if the struct value is a final value.
+For example,
+
+```golang
+type Counter struct {
+	mu sync.Mutex
+	n  uint64
+}
+
+func (c *Counter.fixed) Get() uint64 {
+	c.mu.Lock() // error: the receiver parameter of Lock method is normal,
+	            //        but the receiver argument is fixed.
+	v := c.n
+	c.mu.Unlock()
+	return v
+}
+```
+
+In the above example, a fixed method (see below) can't modify the `mu` field of the `Counter` value referenced by the receiver `c`.
+For a `Counter` value, its `n` field is its core part, and its `mu` field is its auxiliary part.
+We hope we can modify the auxiliary part in the fixed method here.
+
+To solve this problem, a `T.mutable` notation is introduced.
+`T.mutable` is called a mutable type.
+The notation can only be used to specify types for **unexported struct fields**.
+Fields of mutable types of a struct value are always `*.normal` values,
+even if the struct value is a `final.fixed` value.
+In particular, if the struct value is addressable,
+then its fields of mutable types are always `var.normal` values.
+
+With the new rule, the above example can be modified as
+
+```golang
+type Counter struct {
+	mu sync.Mutex.mutable
+	n  uint64
+}
+
+func (c *Counter.fixed) Get() uint64 {
+	c.mu.Lock() // ok. No problems now.
+	v := c.n
+	c.mu.Unlock()
+	return v
+}
 ```
 
 #### reflection
