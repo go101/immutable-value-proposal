@@ -93,6 +93,10 @@ More need to be noted:
 
 A value is either a variable or a final. A value is either fixed or normal.
 
+The relation of final and fixed values is:
+* the values referenced by fixed values are final values.
+* taking addresses of (addressable) final values are fixed values.
+
 From the view of a fixed value, all values referenced by it are both final and fixed values.
 
 Repeat it again, although a final value can't be modified through the fixed values
