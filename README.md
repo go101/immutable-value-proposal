@@ -56,7 +56,7 @@ A **_final value_** concept is introduced.
 * `{self_modifiable: false}` values (finals) are declared with `final` (a new keyword).
    Please note that, although a `final` value itself can't be modified,
    the values referenced by the `final` value might be modifiable.
-   (Same as JavaScript `const` values and Java `final` values.)
+   (Like JavaScript `const` values and Java `final` values.)
 
 All intermediate results in Go should be viewed as final values,
 including function returns, operator operation evaluation results,
@@ -106,9 +106,9 @@ Note, some value hosted at a specified memory address may represent as a final o
 Similarly, some value hosted at a specified memory address may represent as fixed or normal, depending on different scenarios.
 This means a final value may be not a true immutable value.
 
-If a final value isn't referenced by any normal value,
+If a value neven represents as a variable in any scenario,
 then there are no (safe) ways to modifiy it,
-so the final value is a true immutable value.
+so the value is a true immutable value.
 For example,
 1. A declared final is guaranteed not to be referenced by any normal value.
    So it is a true immutable value.
