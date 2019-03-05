@@ -1,4 +1,4 @@
-# A proposal to support final values and read-only parameters/results in Go
+# A proposal to support read-only and immutable values in Go
 
 Old versions:
 * [the proposal thread](https://github.com/golang/go/issues/29422)
@@ -8,6 +8,7 @@ Old versions:
 * [the immutable-type interpretation version](README-v3.md)
 * [the immutable-type/value interpretation version: const.fixed](README-v4.md)
 * [the immutable-type/value interpretation version: final.fixed. With interface design flaw](README-v5.md)
+* [the immutable-type/value interpretation version: final.fixed. Without partial read-only](README-v6.md)
 
 
 This proposal is not Go 1 compatible.
@@ -22,10 +23,23 @@ Any criticisms and improvement ideas are welcome, for
 The problems this proposal tries to solve:
 1. no ways to declare package-level exported immutable non-basic values.
 1. no ways to declare read-only function parameters and results.
-
-By solving the two problems, the security and performance of Go programs can be improved much.
+1. many inefficiencies caused by lacking of true immutable and read-only values.
 
 ## The main points of this proposal
+
+Basically, this proposal can be viewed as a combination
+of [issue#6386](https://github.com/golang/go/issues/6386)
+and [issue#22876](https://github.com/golang/go/issues/22876).
+
+This proposal also has some similar ideas with
+[evaluation of read-only slices](https://docs.google.com/document/d/1-NzIYu0qnnsshMBpMPmuO21qd8unlimHgKjRD9qwp2A)
+written by Russ.
+
+However, this proposal has involved much so that
+it has become into a practical solution with more
+ideas and details than the just mentioned ones.
+
+#### The theory discription of the proposal
 
 We know each value has a property, `self_modifiable`, which means whether or not that value is modifiable.
 
@@ -56,7 +70,8 @@ A **_final value_** concept is introduced.
 * `{self_modifiable: false}` values (finals) are declared with `final` (a new keyword).
    Please note that, although a `final` value itself can't be modified,
    the values referenced by the `final` value might be modifiable.
-   (Like JavaScript `const` values and Java `final` values.)
+   (Much like JavaScript `const` values and Java `final` values, but please note
+   we will learn that some finals may be not delcared and may be not true immutable values.)
 
 All intermediate results in Go should be viewed as final values,
 including function returns, operator operation evaluation results,
@@ -95,7 +110,7 @@ A value is either a variable or a final. A value is either fixed or normal.
 
 The relations of final and fixed values are:
 * the values referenced by fixed values are final values.
-* taking addresses of (addressable) final values results fixed values.
+* taking addresses of (addressable) final values results fixed values. (For safety, in the process, some write permissions may be lost.)
 
 From the view of a fixed value, all values referenced by it, either directly or indirectly, are both final and fixed values.
 
@@ -106,9 +121,9 @@ Note, some value hosted at a specified memory address may represent as a final o
 Similarly, some value hosted at a specified memory address may represent as fixed or normal, depending on different scenarios.
 This means a final value may be not a true immutable value.
 
-If a value neven represents as a variable in any scenario,
+If a value never represents as a variable in any scenario,
 then there are no (safe) ways to modifiy it,
-so the value is a true immutable value.
+so the value is a true immutable value, even if it is addressable.
 For example,
 1. A declared final is guaranteed not to be referenced by any normal value.
    So it is a true immutable value.
@@ -116,7 +131,8 @@ For example,
    then all the elements of the slice are guaranteed not to be referenced by any normal value.
    So they are all true immutable values.
 1. Some fixed function return results. (If the doc of the function clearly says the results will
-   not be referenced by any normal value after the function exits.)
+   not be referenced by any normal value after the function exits. For compilers, sometimes it
+   will be easy for them to detect a result fixed result will not be referenced by any normal value.)
 
 Data synchronizations are still needed when concurrently reading
 a final which is not a true immutable value.
@@ -580,7 +596,7 @@ func (c *Counter.fixed) Get() uint64 {
 }
 ```
 
-In the above example, a fixed method (see below) can't modify the `mu` field of the `Counter` value referenced by the receiver `c`.
+In the above example, a fixed method can't modify the `mu` field of the `Counter` value referenced by the receiver `c`.
 For a `Counter` value, its `n` field is its core part, and its `mu` field is its auxiliary part.
 We hope we can modify the auxiliary part in the fixed method here.
 
@@ -660,7 +676,7 @@ The old `Interface` method panics on `*.fixed` values.
 
 A method `reflect.Type.Fixed` is needed to get the fixed version of a normal type.
 A method `reflect.Type.Normal` is needed to get the normal version of a fixed type.
-The method sets of normal type `T` and fixed type `T.fixed` may be different.
+The method sets of fixed type `T.fixed` is the subset of the normal type `T`.
 Their respective other properties should be identical.
 
 A method `reflect.Type.Genre` is needed, it may return `Fixed` or `Normal` (two constants).
