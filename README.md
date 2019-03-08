@@ -10,7 +10,7 @@ Old versions:
 * [the immutable-type/value interpretation version: final+fixed. With interface design flaw](README-v5.md)
 * [final+fixed. Without partial read-only](README-v6.md)
 * [final+fixed. With partial read-only](README-v7.md)
-* const + reader/writer permissions. Partial read-only removed. (v8, the currrent version)
+* const + reader/writer roles. Partial read-only removed. (v8, the currrent version)
 
 _(Comparing to the last revision v7, this revision removes partial read-only,
 for partical read-only will bring many complexities and design flaws.)_
@@ -51,7 +51,7 @@ which means whether or not that value itself is modifiable.
 This proposal will add a new value property `ref_modifiable` for each value.
 This property means whether or not the values referenced
 (either directly or indirectly) by a value are modifiable.
-The `ref_modifiable` property will be called a permission later.
+The `ref_modifiable` property will be called a value role later.
 
 The permutation of thw two properties results 4 genres of values:
 1. `{self_modifiable: true, ref_modifiable: true}`.
@@ -91,11 +91,11 @@ explicit value conversion results, etc.
 Constants (themselves) are immutable values.
 Non-basic declared constants will be always allocated in memory somewhere,
 but a basic declared constant will only be allocated in memory only when needed
-(if it is ever token address in code).
+(if it is ever taken address in code).
 
-Note, althoguh constants themselves are immutable values,
+Note, althoguh a constant itself is an immutable value,
 whether or not the values referenced by a constant are immutable
-values depends on the specified permission (see next section) of the Constant.
+values depends on the specified role (see next section) of the Constant.
 
 There is not a short constant declartion form.
 Shorted declared values are all variables.
@@ -139,7 +139,7 @@ Some details about the `T:reader` notation need to be noted:
    For example, `type T []int:reader` is invalid.
 1. the notation `[]*chan T:reader` can only mean `([]*chan T):reader`,
    whereas `[]*chan (T:reader)`, `[]*((chan T):reader)`
-   and `[]((*chan T):permission)` are all invalid notations.
+   and `[]((*chan T):reader)` are all invalid notations.
 1. Some types non-reader types, including basic types, function types,
    struct types with all field types are non-reader types,
    array types with non-reader element types,
