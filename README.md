@@ -299,15 +299,15 @@ func mut(x []int:reader) []int {
 
 * Elements of reader struct values are also reader values.
 * Elements of writer struct values are also writer values.
-* Elements of struct variable are also variables.
-* Elements of struct constants are also constant
+* Elements of read-only struct values are also read-only values.
+* Elements of writable struct values are also writable values.
 
 #### arrays
 
 * Elements of reader array values are also reader values.
 * Elements of writer array values are also writer values.
-* Elements of array variable are also variables.
-* Elements of array constants are also constants.
+* Elements of read-only array values are also read-only values.
+* Elements of writable array values are also writable values.
 
 #### slices
 
