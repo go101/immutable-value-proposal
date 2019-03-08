@@ -95,7 +95,7 @@ but a basic declared constant will only be allocated in memory only when needed
 
 Note, althoguh a constant itself is an immutable value,
 whether or not the values referenced by a constant are immutable
-values depends on the specified role (see next section) of the Constant.
+values depends on the specified role (see the next section) of the Constant.
 
 There is not a short constant declartion form.
 Shorted declared values are all variables.
@@ -144,13 +144,15 @@ Some details about the `T:reader` notation need to be noted:
    struct types with all field types are non-reader types,
    array types with non-reader element types,
    and channel types with non-reader element types.
-   The reader role and writer roles are non-sense for non-reference values.
+   The reader and writer roles are non-sense for non-reference values.
    * Values of non-reader types are always viewed as writer values.
      But for conviences, sometimes, call values of non-reader types
      as reader values in descriptions are allowed.
    * For a non-reader type `T`, the notation `T:reader` is invaid.
      For this reason, `func() T:reader` means `func() (T:reader)`
      instead of `(func() T):reader`.
+     However, please note, `[]func() T:reader` means `([]func() T):reader`,
+     which is different to `[](func() T:reader):reader`.
 
 **A writer value is assignable to a reader variable,
 but a reader value is not assignable to a writer variable.**
@@ -169,7 +171,7 @@ Please see the following for such examples.)
 
 Abouve has mentions:
 * a named constant must be bound to a value in its declaration.
-  It can be assigned to again later.
+  It can't be assigned to again later.
 * a writer value is assignable to a reader variable,
   but a reader value is not assignable to a writer variable.
 * a writer value can be converted to a reader value, but not vice versa.
@@ -204,7 +206,7 @@ An example:
 }
 ```
 
-In the above, the element of the slices are not immutable values.
+In the above, the elements of the slices are not immutable values.
 However, in the following example, the slice elements are immutable.
 ```
 {
