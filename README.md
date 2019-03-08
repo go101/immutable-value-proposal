@@ -88,8 +88,7 @@ Most intermediate results in Go should be viewed as constant values,
 including function returns, operator operation evaluation results,
 explicit value conversion results, etc.
 
-**Constant values unaddressable.**
-But constants (themselves) are immutable values.
+Constants (themselves) are immutable values.
 Non-basic declared constants will be always allocated in memory somewhere,
 but a basic declared constant will only be allocated in memory only when needed
 (if it is ever token address in code).
