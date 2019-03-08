@@ -6,13 +6,16 @@ Old versions:
 * [the `var:N` version](README-v1.md)
 * [the pure-immutable-value interpretation version](README-v2.md)
 * [the immutable-type interpretation version](README-v3.md)
-* [the immutable-type/value interpretation version: const.fixed](README-v4.md)
-* [the immutable-type/value interpretation version: final.fixed. With interface design flaw](README-v5.md)
-* [the immutable-type/value interpretation version: final.fixed. Without partial read-only](README-v6.md)
+* [the immutable-type/value interpretation version: const+fixed](README-v4.md)
+* [the immutable-type/value interpretation version: final+fixed. With interface design flaw](README-v5.md)
+* [final+fixed. Without partial read-only](README-v6.md)
+* [final+fixed. With partial read-only](README-v7.md)
+* const + reader/writer permissions. Partial read-only removed. (v8, the currrent version)
 
+_(Comparing to the last revision v7, this revision removes partial read-only,
+for partical read-only will bring many complexities and design flaws.)_
 
-This proposal is not Go 1 compatible.
-Please read the last section of this proposal for incompatible cases.
+This revision is Go 1 compatible.
 
 Any criticisms and improvement ideas are welcome, for
 * I have not much compiler-related knowledge, so the following designs may have flaws.
@@ -23,9 +26,10 @@ Any criticisms and improvement ideas are welcome, for
 The problems this proposal tries to solve:
 1. no ways to declare package-level exported immutable non-basic values.
 1. no ways to declare read-only function parameters and results.
-1. many inefficiencies caused by lacking of true immutable and read-only values.
+1. many inefficiencies caused by lacking of immutable and read-only values.
 
-## The main points of this proposal
+Detailed rationales are listed in [another page](rationale.md).
+The rationales page also lists some solutions for the drawbacks mentioned by Russ.
 
 Basically, this proposal can be viewed as a combination
 of [issue#6386](https://github.com/golang/go/issues/6386)
@@ -36,15 +40,18 @@ This proposal also has some similar ideas with
 written by Russ.
 
 However, this proposal has involved much so that
-it has become into a practical solution with more
-ideas and details than the just mentioned ones.
+it has become into a much more practical solution with
+more ideas and details than the just mentioned ones.
 
-#### The theory discription of the proposal
+## The main points of this proposal
 
-We know each value has a property, `self_modifiable`, which means whether or not that value is modifiable.
+We know each value has a property, `self_modifiable`,
+which means whether or not that value itself is modifiable.
 
-This proposal will add a new value property `ref_modifiable` for each value, which means
-whether or not the values referenced (either directly or indirectly) by that value are modifiable.
+This proposal will add a new value property `ref_modifiable` for each value.
+This property means whether or not the values referenced
+(either directly or indirectly) by a value are modifiable.
+The `ref_modifiable` property will be called a permission later.
 
 The permutation of thw two properties results 4 genres of values:
 1. `{self_modifiable: true, ref_modifiable: true}`.
@@ -53,304 +60,292 @@ The permutation of thw two properties results 4 genres of values:
    No such Go values currently.
 1. `{self_modifiable: false, ref_modifiable: true}`.
    Such as composite literals.
-   (In fact, all declared constants in JavaScript and all final variables decalred in Java belong to this genre.)
+   (In fact, all constants in JavaScript and
+   all final variables decalred in Java belong to this genre.)
 1. `{self_modifiable: false, ref_modifiable: false}`.
    No such Go values currently.
 
-(Note, in fact, we can catagory declared function values, method values and constant basic values into either the 3rd or the 4th genre.)
+(Note, in fact, we can catagory declared function values, method values
+and constant basic values into either the 3rd or the 4th genre.)
 
-This proposal will let Go support the two value genres the current Go doesn't support,
-and extend the range of `{self_modifiable: false, ref_modifiable: true}` values.
+This proposal will let Go support values of the 2nd and 4th genres,
+and extend the value range of the 3rd genre.
 
-#### final values
+#### variables and (extended) constants
 
-This proposal treats the `self_modifiable` as a direct value property.
-A **_final value_** concept is introduced.
+This proposal treats the `self_modifiable` as a value property.
+The current constant value concpet is extended.
 * `{self_modifiable: true}` values (variables) are declared with `var`.
-* `{self_modifiable: false}` values (finals) are declared with `final` (a new keyword).
-   Please note that, although a `final` value itself can't be modified,
-   the values referenced by the `final` value might be modifiable.
-   (Much like JavaScript `const` values and Java `final` values, but please note
-   we will learn that some finals may be not delcared and may be not true immutable values.)
+* `{self_modifiable: false}` values (constants) are declared with `const`
+   A constant must be bound a value in its declaration.
+   Constants can be values of any type, not limited to values of basic types.
+   Please note that, although a constant itself can't be modified,
+   the values referenced by the constant might be modifiable.
+   (Much like JavaScript `const` values and Java `final` values.)
+   As always, a named constant must be bound to a value in its declaration.
 
-All intermediate results in Go should be viewed as final values,
+Most intermediate results in Go should be viewed as constant values,
 including function returns, operator operation evaluation results,
 explicit value conversion results, etc.
 
-Final values may be addressable, or not.
+**Constant values unaddressable.**
+But constants (themselves) are immutable values.
+Non-basic declared constants will be always allocated in memory somewhere,
+but a basic declared constant will only be allocated in memory only when needed
+(if it is ever token address in code).
 
-#### fixed types and fixed values
+Note, althoguh constants themselves are immutable values,
+whether or not the values referenced by a constant are immutable
+values depends on the specified permission (see next section) of the Constant.
 
-This proposal treats `ref_modifiable` as a type property.
-Surely, it is also an (indirect) value property.
+There is not a short constant declartion form.
+Shorted declared values are all variables.
+Function parameters and results also can't be delcared as constants.
 
-Types with property `{ref_modifiable: false}` are called fixed types.
-The notation `T.fixed` is introduced to represent the fixed version of a normal type `T`,
-where `fixed` is a new introduced keyword.
-A value of type `T.fixed` itself may be modifiable,
-it is just that the values referenced (either directly or indirectly)
-by the `T.fixed` value can't be modified (through the `T.fixed` value).
+#### value roles: reader and writer
 
-Later, values of a normal type `T` will be called normal values,
-and values of a normal type `T.fixed` will be called fixed values,
+This proposal proposes to add a value role concept to
+denote the `ref_modifiable` property.
+Although roles are properties of values,
+to ease the syntax designs, we can also think they are properties of types.
 
-A notation `v.fixed` is introduced to convert a value `v` of type `T` to a `T.fixed` value.
-The `.fixed` suffix can only follow r-values (right-hand-side values).
+The notation `T:reader` is introduced to represent a reader type.
+Its values are called reader values.
+The notation can be used to declare package-level variable/constants,
+local variable/constants, and function parameter/result variables.
+But it can't be used to specifiy struct field types.
+Fields of a struct value will inherit the roles from the struct value.
 
-More need to be noted:
-* the notation `[]*chan T.fixed` can only mean `([]*chan T).fixed`,
-  whereas `[]*chan (T.fixed)`, `[]*((chan T).fixed)` and `[]((*chan T).fixed)` are all invalid notations.
-* `fixed` is not allowed to appear in type declarations. For example, `type T []int.fixed` is invalid.
-* the respective fixed types of normal no-reference types (including basic types, fucntion types, struct types with only fields
-  of no-reference types, and array types with no-reference element types) are the normal types themselves.
+There is not the `T:writer` notation. 
+The *writer role* concept does exist.
+The raw `T` notation means a writer type (in non-struct field declarations). 
 
-#### about final, fixed, and immutable values
+Thw word `reader` can be either a keyword or not.
+If it is designed as not, then it can be viewed as a predeclared role.
 
-A value is either a variable or a final. A value is either fixed or normal.
+The meanings of **reader** and **writer** values:
+* All values referecned by a reader value are read-only (and also reader) values.
+  (from the view of the reader value).
+  In other words, a reader value represents a read-only value chain,
+  and the reader value is the head of the chain.
+  Note, the reader head itself might not be a variable, which is not a read-only value.
+* All values referecned by a writer value are writable (and also writer) values
+  (from the view of the writer value).
+  In other words, a writer value represents a writable value chain,
+  and the writer value is the head of the chain.
+  Note, the writer head itself might be a constant, which is a read-only value.
 
-The relations of final and fixed values are:
-* the values referenced by fixed values are final values.
-* taking addresses of (addressable) final values results fixed values. (For safety, in the process, some write permissions may be lost.)
+Some details about the `T:reader` notation need to be noted:
+1. `:reader` is not allowed to appear in type declarations.
+   For example, `type T []int:reader` is invalid.
+1. the notation `[]*chan T:reader` can only mean `([]*chan T):reader`,
+   whereas `[]*chan (T:reader)`, `[]*((chan T):reader)`
+   and `[]((*chan T):permission)` are all invalid notations.
+1. Some types non-reader types, including basic types, function types,
+   struct types with all field types are non-reader types,
+   array types with non-reader element types,
+   and channel types with non-reader element types.
+   The reader role and writer roles are non-sense for non-reference values.
+   * Values of non-reader types are always viewed as writer values.
+     But for conviences, sometimes, call values of non-reader types
+     as reader values in descriptions are allowed.
+   * For a non-reader type `T`, the notation `T:reader` is invaid.
+     For this reason, `func() T:reader` means `func() (T:reader)`
+     instead of `(func() T):reader`.
 
-From the view of a fixed value, all values referenced by it, either directly or indirectly, are both final and fixed values.
+**A writer value is assignable to a reader variable,
+but a reader value is not assignable to a writer variable.**
+This the most important principle of this proposal.
 
-Taking addresses of (addressable) fixed values results fixed values too.
-(For safety, in the process, some write permissions may be lost.)
+A notation `v:reader` is introduced to convert a writer value `v` to a reader value,
+The `:reader` suffix can only follow r-values (right-hand-side values).
 
-Note, some value hosted at a specified memory address may represent as a final or a variable, depending on different scenarios.
-Similarly, some value hosted at a specified memory address may represent as fixed or normal, depending on different scenarios.
-This means a final value may be not a true immutable value.
+You may have got it, a value hosted at a specified memory address may
+represent as a read-only value or a writable value, depending on context.
+So a non-constant read-only values might be not an immutable value.
+(But there are really some non-constant read-only values are immutable values.
+Please see the following for such examples.)
 
-If a value never represents as a variable in any scenario,
-then there are no (safe) ways to modifiy it,
-so the value is a true immutable value, even if it is addressable.
-For example,
-1. A declared final is guaranteed not to be referenced by any normal value.
-   So it is a true immutable value.
-1. If the expression `[]int{1, 2, 3}.fixed` is used as the initial value of a declared fixed slice value,
-   then all the elements of the slice are guaranteed not to be referenced by any normal value.
-   So they are all true immutable values.
-1. Some fixed function return results. (If the doc of the function clearly says the results will
-   not be referenced by any normal value after the function exits. For compilers, sometimes it
-   will be easy for them to detect a result fixed result will not be referenced by any normal value.)
+#### assignment and conversion rules
 
-Data synchronizations are still needed when concurrently reading
-a final which is not a true immutable value.
-But if a final is a true immutable value,
-then there are no (safe) ways to modifiy it,
-so concurrently reading it doesn't need data synchronization.
+Abouve has mentions:
+* a named constant must be bound to a value in its declaration.
+  It can be assigned to again later.
+* a writer value is assignable to a reader variable,
+  but a reader value is not assignable to a writer variable.
+* a writer value can be converted to a reader value, but not vice versa.
 
-#### basic assignment rules
+#### some examples
 
-Below, for description convenience, the proposal will call
-* `T` values declared with `var` as `var.normal` values.
-* `T` values declared with `final` as `final.normal` values.
-* `T.fixed` values declared with `var` as `var.fixed` values.
-* `T.fixed` values declared with `final` as `final.fixed` values.
-
-The basic assignment/binding rules:
-1. A `final.*` value must be bound a value in its declaration.
-   After the declaration, it can never be assigned any more.
-1. `*.normal` values can be bound/assigned to a `*.normal` value.
-1. Values of any genres can be bound/assigned to a `*.fixed` value, including constants, literals, variables,
-   and the new supported values by this proposal.
-1. Generally, `*.fixed` values can't be bound/assigned to a `*.normal` value, with one exception:
-   `*.fixed` values of no-reference types will be viewed as be viewed as `*.normal` values (and vice versa) when
-   they are used as source values in assignments.
-   In other words, a value of any genre can be assigned to another value of any genre,
-   if the two values are both of no-reference types, as long as they satisfy other old assignment requirements.
-
-The section to the next will list the detailed rules for values of all kinds of types.
-Those rules are much straightforward and anticipated.
-**_They are derived from the above mentioned principle and basic assignment/binding rules._**
-
-#### the difference from C++ const values
-
-Please note, the immutability semantics in this proposal is different from the `const` semantics in C++.
-For example, a value declared as `var p ***int.fixed` in this proposal is
-like a variable decalared as `int const * const * const * p` in C++.
-In C/C++, we can declare a variable as `int * const * const * x`,
-but there are no ways to declare variables with the similar immutabilities in this proposal.
-(In other words, this proposal thinks such use cases are rare in practice.)
-
-For example, the following C++ code is valid.
-```C++
-#include <stdio.h>
-
-typedef struct T {
-	int* y;
-} T;
-
-int main() {
-	int a = 123;
-	T t = {.y = &a};
-	const T* p = &t; // <=> T const * p = &t;
-	*p->y = 789; // allowed
-	printf("%d\n", *t.y); // 789
-	return 0;
-}
+An example:
 ```
-
-But, the following similar Go code is invalid by this proposal.
-
-```golang
-package main
-
-type T struct{
-	y *int
-}
-
-func main() {
-	var a int = 123
-	var t = T{y: &a}
-	var p *T.fixed = &t; // a value with property:
-	                     // {self_modifiable: true, ref_modifiable: false}
-	*p.y = 789;  // NOT allowed,
-	             // for all values referenced by p, either
-	             // directly or indirectly, are unmodifiable.
-	println(*t.y);
-}
-```
-
-## Syntax changes
-
-It is a challenge to design a both simple and readable syntax set for this proposal.
-The current design may be not perfect, so any improvemnt ideas are welcome.
-
-Some examples of the full value declaration form:
-```golang
-// A true immutable value which can't be modified in any (safe) way.
-final FileNotExist = errors.New("file not exist").fixed  
-
-// The following two declarations are equivalent.
-// Note, the elements of "a" are all true immutable values.
-var a []int.fixed = []int{1, 2, 3}
-var a = []int{1, 2, 3}.fixed
-
-// The following declarations are equivalent (for no-reference types only).
-var b int
-var b int.fixed
-
-// Declare variables in a hybrid way.
-
-// x is a var.fixed value, y is a var.normal value.
-var x, y = []int{1, 2}.fixed, []int{1, 2}
-// z is a final.normal value, w is a final.fixed value.
-final z, w []int = []int{1, 2}, []int{1, 2}.fixed
-```
-
-Read-only parameter and result declaration examples:
-```golang
-func Foo(m http.Request.fixed, n map[string]int.fixed) (o []int.fixed, p chan int.fixed) {...}
-func Print(values ...interface{}.fixed) {...}
-```
-All parameters and results in the above example are `var.fixed` values.
-To avoid syntax design complexity, `final.*` parameters and results are not supported.
-
-Short value declaration examples:
-```golang
 {
-	oldA, newB := va, vb.fixed // newB is a var.fixed value
+	var x = []*int{new(int)} // x is a writer variable
+	const y = x              // y is a writer constant
+	var z []*int:reader = x  // z is a reader variable
+	const w = y:reader       // w is a reader constant
+	
+	// x, y, z and w share elements.
+	
+	x[0] = new(int); *x[0] = 123 // ok
+	x = nil                      // ok
+	println(*z[0])               // 123
+	
+	y[0] = new(int); *y[0] = 789 // ok
+	y = nil                      // error: y is a constant
+	println(*w[0])               // 789
+	
+	*z[0] = 555; z[0] = new(int) // error: z[0] and *z[0] are read-only
+	z = nil                      // ok
+	
+	*w[0] = 555; w[0] = new(int) // error: w[0] and *w[0] are read-only
+	w = nil                      // error: w is a constant
+	
+	x = z // error: reader value z can't be assigned to writer value x
+}
+```
+
+In the above, the element of the slices are not immutable values.
+However, in the following example, the slice elements are immutable.
+```
+{
+	var s = []int{1, 2, 3}:reader
+	s[0] = 9 // error: s[0] is read-only
+	
+	// S and its elements are both immutable.
+	const S = []int{1, 2, 3}:reader
+}
+```
+
+More examples:
+```
+// An immutable error value.
+const FileNotExist = errors.New("file not exist"):reader
+
+var n int:reader // error: int is a non-reader type
+
+// Two types with read-only parameters and results.
+// All parameters are varibles.
+func Foo(m http.Request:reader, n map[string]int:reader) (o []int:reader, p chan int) {...}
+func Print(values ...interface{}:reader) {...}
+
+// Some short declartions. The items on the left sides
+are all variables. No ways to short delcare constants.
+{
+	oldA, newB := va, vb:reader // newB is a reader variable
 
 	// Explicit conversions.
-	newX, oldY := (Tx.fixed)(va), vy
-	newX, oldY := (Tx(va)).fixed, vy
-	newX, oldY := Tx(va.fixed), vy
-	newX, oldY := Tx(va).fixed, vy // equivalent to the above three lines
+	newX, oldY := (Tx:reader)(va), vy
+	newX, oldY := (Tx(va)):reader, vy
+	newX, oldY := Tx(va:reader), vy
+	newX, oldY := Tx(va):reader, vy // equivalent to the above three lines
 }
 ```
 
-Again, to avoid syntax design complexity, `final.*` values can't be declared in short declartions.
-In other words, values declared in short declarations are always `var.*` values.
+#### about constant, reader, read-only, and immutable values
 
-## Detailed rules of this proposal
+From the above descriptions and explainations, we know:
+* a constant is not only a read-only value, it is also an immutable value.
+* a reader value can be a variable or a constant,
+  it can be read-only or writable.
+* a writer value can be a variable or a constant,
+  it can be read-only or writable.
+* some read-only values are immutable values, but most are not.
+
+No data synchronizations are needed in reading immutable values,
+and data synchronizations are still needed when concurrently reading
+a read-only value which is not an immutable value.
+
+## Detailed rules for values of all kinds of types
 
 #### safe pointers
 
-* Dereferences of `*.fixed` pointers are `final.fixed` values.
-* Dereferences of `*.normal` pointers are `var.normal` values.
-* Addresses of addressable `final.*` and `*.fixed` values are `*.fixed` pointer values.
-  Some certain write permissions are lost when taking addresses of addressable `final.normal` and `var.fixed` values.
-
-Yes, `final.*` values may be addressable.
+* Dereference of a reader pointer results a read-only value.
+* Dereference of a writer pointer results a writable value.
+* Taking address of an addressable constant or a reader value results a reader pointer.
+* Taking address of an addressable writer value results a writer pointer.
 
 Example:
-```golang
-final x = []int{1, 2, 3}
+```
+const x = []int{1, 2, 3}
 
 func foo() {
-	y := &x  // y is var.fixed value of type *[]int.fixed
-	z := *y  // *y is a final.fixed value, but
-	         // z is deduced as a var.fixed value.
-	z[0] = 9 // error: z[0] is a final value
-	w := &z  // w is a var.fixed value (of type *[]int.fixed)
+	y := &x  // y is reader pointer variable of type *[]int:reader.
+	z := *y  // z is deduced as a reader variable of type []int:reader.
+	w := x   // w is like z.
+	z[0] = 9 // error: z[0] is read-only.
+	u := &z  // u is like y.
 	...
 }
 ```
 
 #### unsafe pointers
 
-* Fixed pointers and normal pointers can be both converted to unsafe pointers.
+* Reader pointers and writer pointers can be both converted to unsafe pointers.
   This means the read-only rules built by this proposal can be broken by the unsafe mechanism.
   (This is important for reflection implementation.)
 
 Example:
-```golang
-func mut(x []int.fixed) []int {
+```
+func mut(x []int:reader) []int {
 	return *((*[]int)(unsafe.Pointer(&x)))
 }
 ```
+#### structs
+
+* Elements of reader struct values are also reader values.
+* Elements of writer struct values are also writer values.
+* Elements of struct variable are also variables.
+* Elements of struct constants are also constant
 
 #### arrays
 
-* Elements of `var.fixed` array values are `var.fixed` values.
-* Elements of `var.normal` array values are `var.normal` values.
-* Elements of `final.fixed` array values are `final.fixed` values.
-* Elements of `final.normal` array values are `final.normal` values.
+* Elements of reader array values are also reader values.
+* Elements of writer array values are also writer values.
+* Elements of array variable are also variables.
+* Elements of array constants are also constants.
 
 #### slices
 
-* Elements of `*.fixed` slice values are `final.fixed` values.
-* Elements of `*.normal` slice values are `var.normal` values.
-* We can't append elements to `*.fixed` slice values.
+* Elements of reader slice values are read-only and reader values.
+* Elements of writer slice values are writable and writer values.
+* We can't append elements to reader slice values.
 * Subslice:
-  * The subslice result of a `*.fixed` slice is still a `final.fixed` slice.
-  * The subslice result of a `*.normal` slice is still a `final.normal` slice.
-  * The subslice result of a `final.*` or `*.fixed` array is a `var.fixed` slice.
+  * The subslice result of a reader slice is still a reader slice.
+  * The subslice result of a writer slice is still a writer slice.
+  * The subslice result of a constant or reader array is a reader slice
     Some certain write permmisions may be lost in the process.
 
 Example 1:
-```golang
+```
 type T struct {
 	a int
 	b *int
 }
 
-// The type of x is []T.fixed.
-var x = []T{{123, nil}, {789, new(int)}}.fixed
+// The type of x is []T:reader.
+var x = []T{{123, nil}, {789, new(int)}}:reader
 
 func foo() {
-	x[0] = nil   // error: x[0] is a final value
-	x[0].a = 567 // error: x[0] is a final value
-	y := x[0]    // x[0] is a final.fixed value, but y is deduced
-	             // as a var.fixed value (of type T.fixed).
+	x[0] = nil   // error: x[0] is read-only.
+	x[0].a = 567 // error: x[0] is read-only.
+	y := x[0]    // y is a reader value of type T:reader.
 	y.a = 567    // ok
-	*y.b = 567   // error: y.b is a fixed value
+	*y.b = 567   // error: y.b is read-only
 	y.b = nil    // ok
-	z := x[:1]   // z is var.fxied value (of type []T.fixed)
+	z := x[:1]   // liek x, z is reader slice.
 	x = nil      // ok
 	y = T{}      // ok
 	
-	final w = x // w is a final.fixed value
-	u := w[:]   // w[:] is a final.fixed value, but
-	            // u is deduced as a var.fixed value.
+	const w = x // w is a reader constant.
+	u := w[:]   // u is a reader slice variable.
 	
-	// v is a final.normal value.
-	final v = []T{{123, nil}, {789, new(int)}}
-	v = nil    // error: v is a final value
+	// v is a writer slice constant.
+	const v = []T{{123, nil}, {789, new(int)}}
+	v = nil    // error: v is a constant
 	v[1] = T{} // ok
 	
-	_ = append(u, T{}) // error: can't append to fixed slices
+	_ = append(u, T{}) // error: can't append to reader slices
 	_ = append(v, T{}) // ok
 	
 	...
@@ -358,144 +353,169 @@ func foo() {
 ```
 
 Example 2:
-```golang
+```
 var x = []int{1, 2, 3}
 
 // External packages have no ways to modify elements of x (through S).
-final S = x.fixed // ok.
+const S = x:reader
 
-// The elements of R even can't be modified in current package!
-// It is a true immutable value.
-final R = []int{7, 8, 9}.fixed
+// The elements of R can't even be modified in current package!
+// It and its elements are all immutable values.
+const R = []int{7, 8, 9}:reader
 
 // Q itself can't be modified, but its elements can.
-final Q = []int{7, 8, 9}
+const Q = []int{7, 8, 9}
 ```
 
 Example 3:
-```golang
+```
 var s = "hello word"
-var bytes = []byte.fixed(s) // a clever compiler will not allocate a
-                            // duplicate underlying byte sequence here.
+
+// "bs" is a reader byte slice.
+// A clever compiler will not allocate a
+// duplicate underlying byte sequence here.
+var bs = []byte:reader(s) // <=> []byte(s):reader
 {
-	pw := &s[6] // pw is a `var.fixed` poiner whose base type is "byte".
+	pw := &s[6] // pw is reader poiner whose base type is "byte".
+	pw = &bs[6] // ok
 }
 ```
 
+Note, interally, the `cap` field of a reader byte slice is set to `-1`
+if the byte slice is converted from a string, so that Go runtime knows
+its elements are immutable. Converting such a reader byte slice to
+a string doesn't need to duplicate the underlying bytes.
+
 #### maps
 
-* Elements of `*.fixed` map values are `final.fixed` values.
-* Elements of `*.normal` map values are `final.normal` values.
-  (Although map elements are final values, each of they can be replaced as a while.)
-* Keys (exposed in for-range) of `*.fixed` map values are `final.fixed` values.
-* Keys (exposed in for-range) of `*.normal` map values are `final.normal` values.
+* Elements of reader map values are read-only and reader values.
+* Elements of writer map values are writable and writer values.
+  (Each writable map element must be modified as a whole.)
+* Keys (exposed in for-range) of reader map values are read-only and reader values.
+* Keys (exposed in for-range) of writer map values are writable and writer values.
 * We can't append new entries to (or replace entries of,
-  or delete old entries from) `*.fixed`  map values.
+  or delete old entries from) reader map values.
 
 Example:
-```golang
+```
 type T struct {
 	a int
 	b *int
 }
 
-// x is a true immutable value.
-final x = map[string]T{"foo": T{a: 123, b: new(int)}}.fixed
+// x and its entries are all immutable values.
+constant x = map[string]T{"foo": T{a: 123, b: new(int)}}:reader
 
 bar(x) // ok
 
-func bar(v map[string]T.fixed) { // v is a var.fixed value
-	// Both v["foo"] and v["foo"].b are fixed values.
-	*v["foo"].b = 789 // error: v["foo"].b is a fixed value
-	v["foo"] = T{}    // error: v["foo"] is a fixed map
-	v["baz"] = T{}    // error: v["foo"] is a fixed map
+func bar(v map[string]T:reader) { // v is a reader variable
+	// Both v["foo"] and v["foo"].b are both reader values.
+	*v["foo"].b = 789 // error: v["foo"].b is read-only
+	v["foo"] = T{}    // error: v["foo"] is a reader map
+	v["baz"] = T{}    // error: v["foo"] is a reader map
 	
-	// m will be deduced as a var.fixed value.
-	// That means as long as one element or one key is fixed
-	// in a map literal, then the map value is a fixed value.
+	// m will be deduced as a reader map variable.
+	// That means as long as one element or one key is a reader
+	// value in a map literal, then the map is also a reader value.
 	m := map[*int]*int {
-		new(int): new(int).fixed,
+		new(int): new(int):reader,
 		new(int): new(int),
 		new(int): new(int),
 	}
 	for a, b := range m {
-		// a and b are both var.fixed values.
-		// Their types are *int.fixed.
+		// a and b are both reader values of type *int:reader.
 		
-		*a = 123 // error: a is a fixed value
-		*b = 789 // error: b is a fixed value
+		*a = 123 // error: *a is read-only
+		*b = 789 // error: *b is read-only
 	}
 }
-
 ```
 
 #### channels
 
 * Send
-  * We can't send values to `final.*` channels.
-  * We can send values of any genres to a `var.fixed` channel.
-  * We can only send `*.normal` values to a `var.normal` channel.
+  * We can't send values to constant channels.
+  * We can send values of any genres to a reader channel.
+  * We can only send writer values to a writer channel.
 * Receive
-  * We can't receive values from `final.*` channels.
-  * Receiving from a `*.normal` channel results a `final.normal` value.
-  * Receiving from a `*.fixed` channel results a `final.fixed` value.
+  * We can't receive values from constant channels.
+  * Receiving from a reader channel results a reader value.
+  * Receiving from a writer channel results a writer value.
 
 Example:
-```golang
-var x = new(int)
-final ch = make(chain *int, 1)
+```
+const ch = make(chain *int, 1)
 
-func foo(c chan *int.fixed) {
-	x := <-c // ok. x is a var.fixed value (of type *int.fixed)
+func foo(c chan *int:reader) {
+	x := <-c // ok. x is a reader variable of type *int:reader.
 	y := new(int)
-	c <- y  // ok
-	ch <- x // error: ch is a final channel
-	<-ch    // error: ch is a final channel
+	c <- y // ok
+
+	ch <- x // error: ch is a constant channel
+	<-ch    // error: ch is a v channel
 	...
 }
 ```
 
 #### functions
 
-Function parameters and results can be declared with property `{ref_modifiable: false}`.
+Function parameters and results can be declared as reader variables.
 
-In the following function proptotype, parameter `x` and result `w` are viewed as being declared as `var.fixed` values.
-```golang
-func fa(x Tx.fixed, y Ty) (z Tz, w Tw.fixed) {...}
+In the following function proptotype, parameter `x` and result `w` are declared as reader variables.
+```
+func fa(x Tx:reader, y Ty) (z Tz, w Tw:reader) {...}
 ```
 
-A `func()(T)` value is assignable to a `func()(T.fixed)` value, not vice versa.
+A `func()(T)` value is assignable to a `func()(T:reader)` value, not vice versa.
 
-A `func(T.fixed)` value is assignable to a `func(T)` value, not vice versa.
+A `func(T:reader)` value is assignable to a `func(T)` value, not vice versa.
+
+To avoid function duplications like the following code shows:
+```
+// split writer byte slices
+func Split_1(v []byte, sep []byte) [][]byte {...}
+
+// split reader byte slices
+func Split_2(v []byte:reader, sep []byte) [][]byte:reader {...}
+```
+
+A role parameter concept is introduced,
+so that the above two function can be declared as one:
+```
+func Split_1(v []byte::r, sep []byte) [][]byte::r {...}
+```
+
+Here, `:r` is called a role parameter.
 
 #### method sets
 
-The method set of type `T.fixed` is always a subset of type `T`.
-This means when a method `M` is explicitly declared for type `T.fixed`,
-then a corresponding implicit method with the same name will be declared for type `T` by compilers.
-```golang
-func (T.fixed) M() {} // explicitly declared. (A fixed method)
+The method set of reader type `T:reader` is always a subset of writer type `T`.
+This means when a method `M` is explicitly declared for reader type `T:reader`,
+then a corresponding implicit method with the same name
+will be declared for writer type `T` by compilers.
+```
+func (T:reader) M() {} // explicitly declared. (A reader method)
 /*
-func (t T) M() {t.fixed.M()} // implicitly declared. (A normal method)
+func (t T) M() {t:reader.M()} // implicitly declared. (A writer method)
 */
 
 var t T
 t.M()
 // <=>
-t.fixed.M()
+t:reader.M()
 // <=>
-T.fixed.M(t.fixed)
+T:reader.M(t:reader)
 // <=>
-T.fixed.M(t)
+T:reader.M(t)
 // <=>
 T.M(t)
 ```
 
-In the above code snippet, the method set of type `T.fixed` contains one method: `fixed.M`,
-however the method set of type `T` contains two method: `fixed.M` and `M`.
+In the above code snippet, the method set of reader type `T:reader` contains one method: `reader.M`,
+however the method set of type `T` contains two method: `reader.M` and `M`.
 
 For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly),
-the method set of type `T.fixed` is a subset of type `*T.fixed`.
+the method set of type `T:reader` is a subset of type `*T:reader`.
 (Or in other words, the method set of type `T` is a subset of type `*T`
 if type `T` is not an interface type.)
 
@@ -504,133 +524,140 @@ if type `T` is not an interface type.)
 An interface type can specify some read-only methods. For example:
 ```golang
 type I interface {
-	M0(Ta) Tb // a normal method
+	M0(Ta) Tb // a writer method
 
-	fixed.M2(Tx) Ty // a fixed method (also called receiver-read-only method).
-	                // NOTE: this is an exported method.
+	reader.M2(Tx) Ty // a reader method (also called receiver-read-only method).
+	                 // NOTE: this is an exported method.
 }
 ```
 
-Similar to non-interface type, if a fixed interface type explicitly specified a read-only method `fixed.M`,
-it also implicitly specifies a normal method with the same name `M`.
+Similar to non-interface type, if a reader interface type
+explicitly specified a read-only method `reader.M`,
+it also implicitly specifies a writer method with the same name `M`.
 
-The method set specified by type `I` contains three methods, `M0`, `fixed.M2` and `M2`.
-The method set specified by type `I.fixed` only contains one method, `fixed.M2`.
+The method set specified by type `I` contains three methods, `M0`, `reader.M2` and `M2`.
+The method set specified by type `I:reader` only contains one method, `reader.M2`.
 
-When a method is declared for a concrete type to implement a fixed method,
-the type of the receiver of the declared method must be fixed.
+When a method is declared for a concrete type to implement a reader method,
+the type of the receiver of the declared method must be a reader type.
 For example, in the following code snippet,
-the type `T1` implements the interface `I` shown in the above code snippet, but the type `T2` doesn't.
+the type `T1` implements the interface `I` shown in the above code snippet,
+but the type `T2` doesn't.
 ```golang
 type T1 struct{}
 func (T1) M0(Ta) Tb {var b Tb; return b}
-func (T1.fixed) M2(Tx) Ty {var y Ty; return y} // the receiver type is fixed.
+func (T1:reader) M2(Tx) Ty {var y Ty; return y} // the receiver type is a reader type.
 
 type T2 struct{}
 func (T2) M0(Ta) Tb {var b Tb; return b}
-func (T2) M2(Tx) Ty {var y Ty; return y} // the receiver type is normal.
+func (T2) M2(Tx) Ty {var y Ty; return y} // the receiver type is a writer type.
 ```
 
 Please note, the type `T3` in the following code snippet also implements `I`.
 Please read the above function section for reasons.
 ```golang
 type T3 struct{}
-func (T3) M0(Ta.fixed) Tb {var b Tb; return b}
-func (T3.fixed) M2(Tx.fixed) Ty {var y Ty; return y} // the receiver type is fixed.
+func (T3) M0(Ta:reader) Tb {var b Tb; return b}
+func (T3:reader) M2(Tx:reader) Ty {var y Ty; return y} // the receiver type is a reader type.
 ```
 
-If a normal type `T` implements a normal interface type `I`,
-then the fixed type `T.fixed` also implements the fixed interface type `I.fixed`.
+If a writer type `T` implements a writer interface type `I`,
+then the reader type `T:reader` also implements the reader interface type `I:reader`.
 
 * Dynamic type
-  * The dynamic type of a `*.normal` interface value is a normal type.
-  * The dynamic type of a `*.fixed` interface value is a fixed type.
+  * The dynamic type of a writer interface value is a writer type.
+  * The dynamic type of a reader interface value is a reader type.
 * Box
-  * No values can be boxed into `final.*` interface values (except the initial bound values).
-  * `*.fixed` values can't be boxed into `var.normal` interface values.
-  * Values of any genres can be boxed into a `var.fixed` interface value.
+  * No values can be boxed into constant interface values (except the initial bound values).
+  * reader values can't be boxed into writer interface values.
+  * Values of any genres can be boxed into a reader interface value.
 * Assert
-  * A type assertion on a `*.fixed` interface value results a `final.fixed` value.
-    For such an assertion, its syntax form `x.(T.fixed)` can be simplified as `x.(T)`.
-  * A type assertion on a `*.normal` interface value results a `final.normal` value.
+  * A type assertion on a reader interface value results a reader value.
+    For such an assertion, its syntax form `x.(T:reader)` can be simplified as `x.(T)`.
+  * A type assertion on a writer interface value results a writer value.
 
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
-in the `fmt` standard package should be changed to `xyz ...interface{}.fixed` instead.
+in the `fmt` standard package should be changed to `xyz ...interface{}:reader` instead.
+
+Role parameters don't work for receiver parameters.
 
 Example:
 ```golang
 var x = []int{1, 2, 3}
-var y = [][]int{x, x}.fixed // ok
-var v interface{} = y       // error: can't assign a fixed value to a normal value.
-var v interface{}.fixed = y // ok
-var w = v.([][]int)         // ok, w is a var.fixed value (of type [][]int.fixed)
-v = x                       // ok
-var u = v.([]int)           // ok, u is a var.fixed value (of type []int.fixed)
-var u = v.([]int.fixed)     // ok, equivalent to the above one, for v is fixed.
+var y = [][]int{x, x}:reader // ok
+var v interface{} = y        // error: can't assign a reader value to a writer value.
+var v interface{}:reader = y // ok
+var w = v.([][]int)          // ok, w is a reader value of type [][]int:reader.
+v = x                        // ok
+var u = v.([]int)            // ok, u is a reader value of type []int:reader.
+var u = v.([]int:reader)     // ok, equivalent to the above one, for v is a reader value.
 ```
 
-#### structs
-
-Like arrays, generally,
-* Fields of `var.fixed` struct values are `var.fixed` values.
-* Fields of `var.normal` struct values are `var.normal` values.
-* Fields of `final.fixed` struct values are `final.fixed` values.
-* Fields of `final.normal` struct values are `final.normal` values.
-
-However, sometimes we desire some fields of a struct value are always writable,
-even if the struct value is a final value.
-For example,
-
+Another eample:
 ```golang
-type Counter struct {
-	mu sync.Mutex
-	n  uint64
+type T0 []int
+func (T0) M([]int) []int
+
+type T1 []int
+func (T1) M([]int:reader) []int
+
+type T2 []int
+func (T2) M([]int) []int:reader
+
+type T3 []int
+func (T3) M([]int:reader) []int:reader
+
+type I interface {
+	M([]int) []int:reader
 }
 
-func (c *Counter.fixed) Get() uint64 {
-	c.mu.Lock() // error: the receiver parameter of Lock method is normal,
-	            //        but the receiver argument is fixed.
-	v := c.n
-	c.mu.Unlock()
-	return v
-}
-```
-
-In the above example, a fixed method can't modify the `mu` field of the `Counter` value referenced by the receiver `c`.
-For a `Counter` value, its `n` field is its core part, and its `mu` field is its auxiliary part.
-We hope we can modify the auxiliary part in the fixed method here.
-
-To solve this problem, a `T.mutable` notation is introduced.
-`T.mutable` is called a mutable type.
-The notation can only be used to specify types for **unexported struct fields**.
-Fields of mutable types of a struct value are always `*.normal` values,
-even if the struct value is a `final.fixed` value.
-In particular, if the struct value is addressable,
-then its fields of mutable types are always `var.normal` values.
-
-With the new rule, the above example can be modified as
-
-```golang
-type Counter struct {
-	mu sync.Mutex.mutable
-	n  uint64
-}
-
-func (c *Counter.fixed) Get() uint64 {
-	c.mu.Lock() // ok. No problems now.
-	v := c.n
-	c.mu.Unlock()
-	return v
-}
+// T0, T1, T2, and T3 all implement I.
+var _ I = T0{}
+var _ I = T1{}
+var _ I = T2{}
+var _ I = T3{}
 ```
 
 #### reflection
 
 Many function and method implementations in the `refect` package should be modified accordingly.
-The `refect.Value` type shoud have a **_fixed_** property,
-and the result of an `Elem` method call should inherit the **_fixed_** property
+The `refect.Value` type shoud have a **_reader_** property,
+and the result of an `Elem` method call should inherit the **reader** property
 from the receiver argument. More about reflection.
 For all details on reflection, please read the following reflection section.
+
+The current `reflect.Value.CanSet` method will report whether or not a value can be modified.
+
+A `reflect.ReaderValueOf` function is needed to create
+`reflect.Value` values representing reader Go values.
+Its prototype is
+```golang
+func ReaderValueOf(i interface{}:reader) Value
+```
+For the standard Go compiler, in implementaion,
+one bit should be borrowed from the 23+ bits method number
+to represent the `reader` proeprty.
+
+All parameters of type `reflect.Value` of the functions and methods
+in the`reflect` package, including receiver parameters,
+should be declared as reader variables.
+However, the `reflect.Value` return results should be declared as writers.
+
+A `reflect.Value.ToReader` method is needed to
+make a `reflect.Value` value represent a reader Go value.
+
+A `reflect.Value.ReaderInterface` method is needed,
+it returns a reader interface value.
+The old `Interface` method panics on reader values.
+
+A method `reflect.Type.Reader` is needed to get the reader version of a writer type.
+A method `reflect.Type.Writer` is needed to get the writer version of a reader type.
+The method sets of reader type `T:reader` is the subset of the writer type `T`.
+Their respective other properties should be identical.
+
+A method `reflect.Type.Genre` is needed,
+it may return `Reader` or `Writer` (two constants).
+
 
 ## Compiler implementation
 
@@ -643,55 +670,13 @@ At compile phase, compiler should maintain two bits for each value.
 One bit means whether or not the value itself can be modified.
 The other bit means whether or not the values referenced by the value can be modified.
 
-At compile phase, **_read-only_** is not represented as a type property.
-
 ## Runtime implementation
 
 Except the next to be explained reflection section, the impact on runtime
 made by this proposal is not large.
 
-Each internal method value should maintain a `fixed` property.
-This information is useful when boxing a fixed value into an interface.
+Each internal method value should maintain a `reader` property.
+This information is useful when boxing a reader value into an interface.
 
-## New reflection functions and methods and how to implement them
 
-The current `reflect.Value.CanSet` method will report whether or not a value can be modified.
 
-A `reflect.FixedValueOf` function is needed to create `reflect.Value` values representing `*.fixed` Go values.
-Its prototype is
-```golang
-func FixedValueOf(i interface{}.fixed) Value
-```
-For the standard Go compiler, in implementaion,
-one bit should be borrowed from the 23+ bits method number to represent the `fixed` proeprty.
-
-All parameters of type `reflect.Value` of the functions and methods in the `reflect` package,
-including receiver parameters, should be declared as `var.fixed` values.
-However, the `reflect.Value` return results should be declared as `var.normal` values.
-
-A `reflect.Value.ToFixed` method is needed to make a `reflect.Value` value represent a `final.fixed` Go value.
-
-A `reflect.Value.FixedInterface` method is needed, it returns a `final.fixed` interface value.
-The old `Interface` method panics on `*.fixed` values.
-
-A method `reflect.Type.Fixed` is needed to get the fixed version of a normal type.
-A method `reflect.Type.Normal` is needed to get the normal version of a fixed type.
-The method sets of fixed type `T.fixed` is the subset of the normal type `T`.
-Their respective other properties should be identical.
-
-A method `reflect.Type.Genre` is needed, it may return `Fixed` or `Normal` (two constants).
-
-## Unsolved and new problems of this proposal
-
-This proposal doesn't guarantee some values referenced by `*.fixed` values will never be modified.
-(This is more a feature than a problem.)
-
-This proposal will make `bytes.TrimXXX` (and some others) functions need some duplicate versions for normal and fixed arguments.
-This problem should be solved by future possible generics feature.
-
-## Go 1 incompatible cases
-
-The followings are the incompatible cases I'm aware of now.
-1. `final` and `fixed` may be used as non-exported identifiers in old user code.
-   It should be easy for the `go fix` command to modify these uses to others.
-   (Using `const` to replace `final` and `fixed` can avoid this incompatible case, but may cause some confusions.)
