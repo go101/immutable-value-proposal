@@ -127,7 +127,7 @@ The meanings of **reader** and **writer** values:
   (from the view of the reader value).
   In other words, a reader value represents a read-only value chain,
   and the reader value is the head of the chain.
-  Note, the reader head itself might not be a variable, which is not a read-only value.
+  Note, the reader head itself might be a variable, which is not a read-only value.
 * All values referecned by a writer value are writable (and also writer) values
   (from the view of the writer value).
   In other words, a writer value represents a writable value chain,
