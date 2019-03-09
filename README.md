@@ -123,7 +123,7 @@ Thw word `reader` can be either a keyword or not.
 If it is designed as not, then it can be viewed as a predeclared role.
 
 The meanings of **reader** and **writer** values:
-* All values referecned by a reader value are read-only (and also reader) values.
+* All values referecned by a reader value are read-only (and also reader) values
   (from the view of the reader value).
   In other words, a reader value represents a read-only value chain,
   and the reader value is the head of the chain.
@@ -486,7 +486,7 @@ func Split_2(v []byte:reader, sep []byte) [][]byte:reader {...}
 A role parameter concept is introduced,
 so that the above two function can be declared as one:
 ```
-func Split_1(v []byte::r, sep []byte) [][]byte::r {...}
+func Split(v []byte::r, sep []byte) [][]byte::r {...}
 ```
 
 Here, `:r` is called a role parameter.
@@ -682,11 +682,14 @@ made by this proposal is not large.
 Each internal method value should maintain a `reader` property.
 This information is useful when boxing a reader value into an interface.
 
+As above has mentioned, the cap field of a reader byte slice should
+be set to `-1` if its byte elements are immutable.
+
 ## Rationales
 
 #### Rationales of Go needs read-only and immutable values
 
-In [ediscretevaluation of read-only slices](https://docs.google.com/document/d/1-NzIYu0qnnsshMBpMPmuO21qd8unlimHgKjRD9qwp2A),
+In [evaluation of read-only slices](https://docs.google.com/document/d/1-NzIYu0qnnsshMBpMPmuO21qd8unlimHgKjRD9qwp2A),
 Russ mentions some inefficiencies caused by lacking of read-only values.
 1. Now, the type of the only parameter of `io.Writer.Write` method is `[]byte`.
    In fact, it should be a read-only parameter, for two reasons:
@@ -711,13 +714,13 @@ also makes a good summary of the benefits of read-only values.
 
 #### Rationales for the `T:reader` notation.
 
-1. It is less discrete than `reader T`. I think `func (Ta.reader) Tx.reader` has a better readibility than `func (reader Ta)(reader Tx)`.
+1. It is less discrete than `reader T`. I think `func (Ta:reader) Tx:reader` has a better readibility than `func (reader Ta)(reader Tx)`.
 1. It conforms to Go type literal design philosophy: more importants shown firstly.
 
-#### About the drawbacks of read-only values mentioned by Russ.
+#### About the problems of read-only values mentioned by Russ.
 
-In [ediscretevaluation of read-only slices](https://docs.google.com/document/d/1-NzIYu0qnnsshMBpMPmuO21qd8unlimHgKjRD9qwp2A),
-Russ mentions some drawbacks of read-only values.
+In [evaluation of read-only slices](https://docs.google.com/document/d/1-NzIYu0qnnsshMBpMPmuO21qd8unlimHgKjRD9qwp2A),
+Russ mentions some problems of read-only values.
 This proposal provides solutions to avoid each of these drawbacks.
 
 1. **function duplication**
@@ -730,12 +733,12 @@ Please see the end of [the function section](#functions).
 
 Solved by setting the capacities of immutable byte slices as `-1` at run time.
 
-Please see the end of [the slice section]d#slices).
+Please see the end of [the slice section](#slices).
 
 3. **loss of generality**
 
-Solved by letting `interface {M(T:reader)}` inplement `interface {M(T)}`
-and letting `interface {M() T}` inplement `interface {M() T:reader}`.
+Solved by letting `interface {M(T:reader)}` implement `interface {M(T)}`
+and letting `interface {M() T}` implement `interface {M() T:reader}`.
 
 Please see [the interface section](#interfaces) for details.
 
