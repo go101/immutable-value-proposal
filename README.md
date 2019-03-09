@@ -490,6 +490,24 @@ func Split(v []byte::r, sep []byte) [][]byte::r {...}
 ```
 
 Here, `:r` is called a role parameter.
+Its name can be arbitrary non-blank identifier,
+but the two occurrences must be consistent.
+Short role parameter names are recommended, such as `r`, `p`, `q`.
+
+Use the `Split` function.
+```
+{
+	var x = []byte{"aaa/bbb/ccc/ddd"}
+	_ = Split(x, []byte("/"))        // call the writer version
+	_ = Split(x:reader, []byte("/")) // call the reader version
+	
+	// Use Split function as values.
+	var fw = Split{r: writer} // I haven't get a better syntax yet.
+	var fr = Split{r: reader}
+	_ = fr(x, []byte("/")) // <=> Split(x:reader, []byte("/"))
+	                       // x is converted to a reader value implicitly.
+}
+```
 
 #### method sets
 
