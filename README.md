@@ -1,7 +1,7 @@
 # A proposal to support read-only and immutable values in Go
 
 Old versions:
-* [the proposal thread](https://github.com/golang/go/issues/29422)
+* [the proposal thread](https://github.com/golang/go/issues/29422), and the [golang-dev thread](https://groups.google.com/forum/#!topic/golang-dev/5M9F09S_k0g)
 * [the initial proposal](README-v0.md)
 * [the `var:N` version](README-v1.md)
 * [the pure-immutable-value interpretation version](README-v2.md)
@@ -39,7 +39,7 @@ This proposal also has some similar ideas with
 [evaluation of read-only slices](https://docs.google.com/document/d/1-NzIYu0qnnsshMBpMPmuO21qd8unlimHgKjRD9qwp2A)
 written by Russ.
 
-However, this proposal has involved much so that
+However, this proposal has involved so much that
 it has become into a much more practical solution with
 more ideas and details than the just mentioned ones.
 
@@ -742,3 +742,27 @@ and letting `interface {M() T}` implement `interface {M() T:reader}`.
 
 Please see [the interface section](#interfaces) for details.
 
+#### About partial read-only.
+
+Sometimes, people may need partical read-only for struct values.
+[An older revision](README-v7.md#structs) of this proposal supports this feature,
+but it is removed from the currrent revision for it brings many complexisites
+and may cause some design flaws.
+
+```
+type Counter struct {
+	mu sync.Mutex:writable
+	n  uint64
+}
+
+{
+	const c Counter
+	c.mu.Lock() // error: c.mu is read-only
+
+	var p = &c  // p is a reader pointer of type *Counter:reader
+	p.mu.Lock() // ok by the rule, but it makes c become a non-immutable value.
+	            // which may cause some confusions.
+	            // To avoid such cases happening, we can forbid taking addresses
+	            // of constants, but I feel this trade-off doesn't worth it.
+}
+```
