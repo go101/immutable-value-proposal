@@ -273,7 +273,7 @@ const x = []int{1, 2, 3}
 func foo() {
 	y := &x  // y is reader pointer variable of type *[]int:reader.
 	z := *y  // z is deduced as a reader variable of type []int:reader.
-	w := x   // w is deduced as a writer variable of type []int:reader.
+	w := x   // w is deduced as a writer variable of type []int.
 	z[0] = 9 // error: z[0] is read-only.
 	u := &z  // u is like y.
 	
