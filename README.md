@@ -13,7 +13,7 @@ Old versions:
 * const + reader/writer roles. Partial read-only removed. (v8, the currrent version)
 
 _(Comparing to the last revision v7, this revision removes partial read-only,
-for partical read-only will bring many complexities and design flaws.)_
+for partical read-only will bring many complexities and cause some design flaws.)_
 
 This revision is Go 1 compatible.
 
@@ -29,7 +29,7 @@ The problems this proposal tries to solve:
 1. many inefficiencies caused by lacking of immutable and read-only values.
 
 Detailed rationales are listed in [at the end of this proposal](#rationales).
-The rationales page also lists some solutions for the drawbacks mentioned by Russ.
+Some solutions for the drawbacks mentioned by Russ are also listed there.
 
 Basically, this proposal can be viewed as a combination
 of [issue#6386](https://github.com/golang/go/issues/6386)
@@ -77,12 +77,11 @@ This proposal treats the `self_modifiable` as a value property.
 The current constant value concpet is extended.
 * `{self_modifiable: true}` values (variables) are declared with `var`.
 * `{self_modifiable: false}` values (constants) are declared with `const`
-   A constant must be bound a value in its declaration.
+   As always, a named constant must be bound a value in its declaration.
    Constants can be values of any type, not limited to values of basic types.
    Please note that, although a constant itself can't be modified,
    the values referenced by the constant might be modifiable.
    (Much like JavaScript `const` values and Java `final` values.)
-   As always, a named constant must be bound to a value in its declaration.
 
 Most intermediate results in Go should be viewed as constant values,
 including function returns, operator operation evaluation results,
@@ -93,9 +92,9 @@ Non-basic declared constants will be always allocated in memory somewhere,
 but a basic declared constant will only be allocated in memory only when needed
 (if it is ever taken address in code).
 
-Note, althoguh a constant itself is an immutable value,
+Note, although a constant itself is an immutable value,
 whether or not the values referenced by a constant are immutable
-values depends on the specified role (see the next section) of the Constant.
+values depends on the specified role (see the next section) of the constant.
 
 There is not a short constant declartion form.
 Shorted declared values are all variables.
@@ -137,14 +136,14 @@ The meanings of **reader** and **writer** values:
 Some details about the `T:reader` notation need to be noted:
 1. `:reader` is not allowed to appear in type declarations.
    For example, `type T []int:reader` is invalid.
-1. the notation `[]*chan T:reader` can only mean `([]*chan T):reader`,
+1. The notation `[]*chan T:reader` can only mean `([]*chan T):reader`,
    whereas `[]*chan (T:reader)`, `[]*((chan T):reader)`
    and `[]((*chan T):reader)` are all invalid notations.
-1. Some types non-reader types, including basic types, function types,
+1. Some types are non-reader types, including basic types, function types,
    struct types with all field types are non-reader types,
    array types with non-reader element types,
    and channel types with non-reader element types.
-   The reader and writer roles are non-sense for non-reference values.
+   The reader and writer roles are non-sense for non-reader values.
    * Values of non-reader types are always viewed as writer values.
      But for conviences, sometimes, call values of non-reader types
      as reader values in descriptions are allowed.
@@ -164,12 +163,12 @@ The `:reader` suffix can only follow r-values (right-hand-side values).
 You may have got it, a value hosted at a specified memory address may
 represent as a read-only value or a writable value, depending on context.
 So a non-constant read-only values might be not an immutable value.
-(But there are really some non-constant read-only values are immutable values.
-Please see the following for such examples.)
+(But there are really some non-constant read-only values which are immutable values.
+Please read the following for such examples.)
 
 #### assignment and conversion rules
 
-Abouve has mentions:
+Above has mentioned:
 * a named constant must be bound to a value in its declaration.
   It can't be assigned to again later.
 * a writer value is assignable to a reader variable,
@@ -225,7 +224,7 @@ const FileNotExist = errors.New("file not exist"):reader
 
 var n int:reader // error: int is a non-reader type
 
-// Two types with read-only parameters and results.
+// Two functions with read-only parameters and results.
 // All parameters are varibles.
 func Foo(m http.Request:reader, n map[string]int:reader) (o []int:reader, p chan int) {...}
 func Print(values ...interface{}:reader) {...}
@@ -254,7 +253,7 @@ From the above descriptions and explainations, we know:
 * some read-only values are immutable values, but most are not.
 
 No data synchronizations are needed in reading immutable values,
-and data synchronizations are still needed when concurrently reading
+but data synchronizations are still needed when concurrently reading
 a read-only value which is not an immutable value.
 
 ## Detailed rules for values of all kinds of types
@@ -385,7 +384,7 @@ var bs = []byte:reader(s) // <=> []byte(s):reader
 }
 ```
 
-Note, interally, the `cap` field of a reader byte slice is set to `-1`
+Note, internally, the `cap` field of a reader byte slice is set to `-1`
 if the byte slice is converted from a string, so that Go runtime knows
 its elements are immutable. Converting such a reader byte slice to
 a string doesn't need to duplicate the underlying bytes.
@@ -395,8 +394,8 @@ a string doesn't need to duplicate the underlying bytes.
 * Elements of reader map values are read-only and reader values.
 * Elements of writer map values are writable and writer values.
   (Each writable map element must be modified as a whole.)
-* Keys (exposed in for-range) of reader map values are read-only and reader values.
-* Keys (exposed in for-range) of writer map values are writable and writer values.
+* Keys (exposed in for-range) of reader map values are reader values.
+* Keys (exposed in for-range) of writer map values are writer values.
 * We can't append new entries to (or replace entries of,
   or delete old entries from) reader map values.
 
@@ -502,7 +501,7 @@ Use the `Split` function.
 	_ = Split(x:reader, []byte("/")) // call the reader version
 	
 	// Use Split function as values.
-	var fw = Split{r: writer} // I haven't get a better syntax yet.
+	var fw = Split{r: writer} // I haven't got better syntax yet.
 	var fr = Split{r: reader}
 	_ = fr(x, []byte("/")) // <=> Split(x:reader, []byte("/"))
 	                       // x is converted to a reader value implicitly.
@@ -730,12 +729,12 @@ BCE (bounds check elimination) optimizations for them.
 The "Strengths of This Proposal" section in @jba's [propsoal](https://github.com/golang/go/issues/22876)
 also makes a good summary of the benefits of read-only values.
 
-#### Rationales for the `T:reader` notation.
+#### Rationales for the `T:reader` notation
 
 1. It is less discrete than `reader T`. I think `func (Ta:reader) Tx:reader` has a better readibility than `func (reader Ta)(reader Tx)`.
 1. It conforms to Go type literal design philosophy: more importants shown firstly.
 
-#### About the problems of read-only values mentioned by Russ.
+#### About the problems of read-only values mentioned by Russ
 
 In [evaluation of read-only slices](https://docs.google.com/document/d/1-NzIYu0qnnsshMBpMPmuO21qd8unlimHgKjRD9qwp2A),
 Russ mentions some problems of read-only values.
@@ -760,7 +759,7 @@ and letting `interface {M() T}` implement `interface {M() T:reader}`.
 
 Please see [the interface section](#interfaces) for details.
 
-#### About partial read-only.
+#### About partial read-only
 
 Sometimes, people may need partical read-only for struct values.
 [An older revision](README-v7.md#structs) of this proposal supports this feature,
