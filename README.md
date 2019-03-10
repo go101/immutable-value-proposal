@@ -226,19 +226,21 @@ var n int:reader // error: int is a non-reader type
 
 // Two functions with read-only parameters and results.
 // All parameters are varibles.
+// Note that "chan int" is a non-reference type.
 func Foo(m http.Request:reader, n map[string]int:reader) (o []int:reader, p chan int) {...}
 func Print(values ...interface{}:reader) {...}
 
 // Some short declartions. The items on the left sides
-are all variables. No ways to short delcare constants.
+// are all variables. No ways to short delcare constants.
 {
 	oldA, newB := va, vb:reader // newB is a reader variable
 
 	// Explicit conversions.
+	// The four lines are equivalent to each other.
 	newX, oldY := (Tx:reader)(va), vy
 	newX, oldY := (Tx(va)):reader, vy
 	newX, oldY := Tx(va:reader), vy
-	newX, oldY := Tx(va):reader, vy // equivalent to the above three lines
+	newX, oldY := Tx(va):reader, vy
 }
 ```
 
@@ -246,13 +248,13 @@ are all variables. No ways to short delcare constants.
 
 From the above descriptions and explainations, we know:
 * a constant is not only a read-only value, it is also an immutable value.
-* a reader value can be a variable or a constant,
-  it can be read-only or writable.
-* a writer value can be a variable or a constant,
-  it can be read-only or writable.
+* a reader value may be a variable or a constant,
+  so it may be read-only or writable.
+* a writer value may be a variable or a constant,
+  so it may be read-only or writable.
 * some read-only values are immutable values, but most are not.
 
-No data synchronizations are needed in reading immutable values,
+No data synchronizations are needed in concurrently reading immutable values,
 but data synchronizations are still needed when concurrently reading
 a read-only value which is not an immutable value.
 
@@ -476,16 +478,16 @@ A `func(T:reader)` value is assignable to a `func(T)` value, not vice versa.
 To avoid function duplications like the following code shows:
 ```
 // split writer byte slices
-func Split_1(v []byte, sep []byte) [][]byte {...}
+func Split_1(v []byte, sep []byte:reader) [][]byte {...}
 
 // split reader byte slices
-func Split_2(v []byte:reader, sep []byte) [][]byte:reader {...}
+func Split_2(v []byte:reader, sep []byte:reader) [][]byte:reader {...}
 ```
 
 A role parameter concept is introduced,
 so that the above two function can be declared as one:
 ```
-func Split(v []byte::r, sep []byte) [][]byte::r {...}
+func Split(v []byte::r, sep []byte:reader) [][]byte::r {...}
 ```
 
 Here, `:r` is called a role parameter.
