@@ -13,7 +13,7 @@ Old versions:
 * const + reader/writer roles. Partial read-only removed. (v8, the currrent version)
 
 _(Comparing to the last revision v7, this revision removes partial read-only,
-for partical read-only will bring many complexities and cause some design flaws.)_
+for partial read-only will bring many complexities and cause some design flaws.)_
 
 This revision is Go 1 compatible.
 
@@ -763,7 +763,7 @@ Please see [the interface section](#interfaces) for details.
 
 #### About partial read-only
 
-Sometimes, people may need partical read-only for struct values.
+Sometimes, people may need partial read-only for struct values.
 [An older revision](README-v7.md#structs) of this proposal supports this feature,
 but it is removed from the currrent revision for it brings many complexisites
 and may cause some design flaws.
