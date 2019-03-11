@@ -116,7 +116,7 @@ Fields of a struct value will inherit the roles from the struct value.
 
 There is not the `T:writer` notation. 
 The *writer role* concept does exist.
-The raw `T` notation means a writer type (in non-struct field declarations). 
+The raw `T` notation means a writer type (in non-struct-field declarations). 
 
 Thw word `reader` can be either a keyword or not.
 If it is designed as not, then it can be viewed as a predeclared role.
@@ -145,13 +145,13 @@ Some details about the `T:reader` notation need to be noted:
    and channel types with non-reader element types.
    The reader and writer roles are non-sense for non-reader values.
    * Values of non-reader types are always viewed as writer values.
-     But for conviences, sometimes, call values of non-reader types
+     But for conviences, sometimes, calling values of non-reader types
      as reader values in descriptions are allowed.
    * For a non-reader type `T`, the notation `T:reader` is invaid.
      For this reason, `func() T:reader` means `func() (T:reader)`
      instead of `(func() T):reader`.
      However, please note, `[]func() T:reader` means `([]func() T):reader`,
-     which is different to `[](func() T:reader):reader`.
+     which is different from `[](func() T:reader):reader`.
 
 **A writer value is assignable to a reader variable,
 but a reader value is not assignable to a writer variable.**
@@ -226,7 +226,7 @@ var n int:reader // error: int is a non-reader type
 
 // Two functions with read-only parameters and results.
 // All parameters are varibles.
-// Note that "chan int" is a non-reference type.
+// Note that "chan int" is a non-reader type.
 func Foo(m http.Request:reader, n map[string]int:reader) (o []int:reader, p chan int) {...}
 func Print(values ...interface{}:reader) {...}
 
@@ -247,7 +247,7 @@ func Print(values ...interface{}:reader) {...}
 #### about constant, reader, read-only, and immutable values
 
 From the above descriptions and explainations, we know:
-* a constant is not only a read-only value, it is also an immutable value.
+* a constant itself is not only a read-only value, it is also an immutable value.
 * a reader value may be a variable or a constant,
   so it may be read-only or writable.
 * a writer value may be a variable or a constant,
@@ -318,8 +318,7 @@ func mut(x []int:reader) []int {
 * Subslice:
   * The subslice result of a reader slice is still a reader slice.
   * The subslice result of a writer slice is still a writer slice.
-  * The subslice result of a constant or reader array is a reader slice
-    Some certain write permmisions may be lost in the process.
+  * The subslice result of a constant or reader array is a reader slice.
 
 Example 1:
 ```
@@ -416,8 +415,8 @@ bar(x) // ok
 func bar(v map[string]T:reader) { // v is a reader variable
 	// Both v["foo"] and v["foo"].b are both reader values.
 	*v["foo"].b = 789 // error: v["foo"].b is read-only
-	v["foo"] = T{}    // error: v["foo"] is a reader map
-	v["baz"] = T{}    // error: v["foo"] is a reader map
+	v["foo"] = T{}    // error: v is a reader map
+	v["baz"] = T{}    // error: v is a reader map
 	
 	// m will be deduced as a reader map variable.
 	// That means as long as one element or one key is a reader
@@ -457,7 +456,7 @@ func foo(c chan *int:reader) {
 	c <- y // ok
 
 	ch <- x // error: ch is a constant channel
-	<-ch    // error: ch is a v channel
+	<-ch    // error: ch is a constant channel
 	...
 }
 ```
@@ -545,7 +544,7 @@ if type `T` is not an interface type.)
 #### interfaces
 
 An interface type can specify some read-only methods. For example:
-```golang
+```
 type I interface {
 	M0(Ta) Tb // a writer method
 
@@ -566,7 +565,7 @@ the type of the receiver of the declared method must be a reader type.
 For example, in the following code snippet,
 the type `T1` implements the interface `I` shown in the above code snippet,
 but the type `T2` doesn't.
-```golang
+```
 type T1 struct{}
 func (T1) M0(Ta) Tb {var b Tb; return b}
 func (T1:reader) M2(Tx) Ty {var y Ty; return y} // the receiver type is a reader type.
@@ -578,14 +577,14 @@ func (T2) M2(Tx) Ty {var y Ty; return y} // the receiver type is a writer type.
 
 Please note, the type `T3` in the following code snippet also implements `I`.
 Please read the above function section for reasons.
-```golang
+```
 type T3 struct{}
 func (T3) M0(Ta:reader) Tb {var b Tb; return b}
-func (T3:reader) M2(Tx:reader) Ty {var y Ty; return y} // the receiver type is a reader type.
+func (T3:reader) M2(Tx:reader) Ty {var y Ty; return y}
 ```
 
 If a writer type `T` implements a writer interface type `I`,
-then the reader type `T:reader` also implements the reader interface type `I:reader`.
+then the reader type `T:reader` also implements the reader interface type `I:reader` for sure.
 
 * Dynamic type
   * The dynamic type of a writer interface value is a writer type.
@@ -605,19 +604,22 @@ in the `fmt` standard package should be changed to `xyz ...interface{}:reader` i
 Role parameters don't work for receiver parameters.
 
 Example:
-```golang
+```
 var x = []int{1, 2, 3}
-var y = [][]int{x, x}:reader // ok
-var v interface{} = y        // error: can't assign a reader value to a writer value.
-var v interface{}:reader = y // ok
-var w = v.([][]int)          // ok, w is a reader value of type [][]int:reader.
+var y = [][]int{x, x}:reader
+var u interface{} = x        // ok
+u = y                        // error: can't assign a reader value to a writer value.
+var v interface{} = y        // ok. v is deduced as a reader interface value.
+var w = v.([][]int)          // ok. Like y, w is a reader value of type [][]int:reader.
 v = x                        // ok
-var u = v.([]int)            // ok, u is a reader value of type []int:reader.
-var u = v.([]int:reader)     // ok, equivalent to the above one, for v is a reader value.
+var s = v.([]int)            // ok, u is a reader value of type []int:reader.
+var t = v.([]int:reader)     // ok, equivalent to the above one.
+var t = u.([]int:reader)     // ok, Assert + convert.
+var r = u.([]int):reader     // ok, Assert then convert. Equivalent to the above one.
 ```
 
 Another eample:
-```golang
+```
 type T0 []int
 func (T0) M([]int) []int
 
@@ -654,7 +656,7 @@ The current `reflect.Value.CanSet` method will report whether or not a value can
 A `reflect.ReaderValueOf` function is needed to create
 `reflect.Value` values representing reader Go values.
 Its prototype is
-```golang
+```
 func ReaderValueOf(i interface{}:reader) Value
 ```
 For the standard Go compiler, in implementaion,
@@ -779,9 +781,9 @@ type Counter struct {
 	c.mu.Lock() // error: c.mu is read-only
 
 	var p = &c  // p is a reader pointer of type *Counter:reader
-	p.mu.Lock() // ok by the rule, but it makes c become a non-immutable value.
+	p.mu.Lock() // ok by the rule, but it makes c become a non-immutable value,
 	            // which may cause some confusions.
 	            // To avoid such cases happening, we can forbid taking addresses
-	            // of constants, but I feel this trade-off doesn't worth it.
+	            // of constants, but I feel this trade-off isn't worth it.
 }
 ```
