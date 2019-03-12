@@ -737,6 +737,7 @@ also makes a good summary of the benefits of read-only values.
 
 1. It is less discrete than `reader T`. I think `func (Ta:reader) Tx:reader` has a better readibility than `func (reader Ta)(reader Tx)`.
 1. It conforms to Go type literal design philosophy: more importants shown firstly.
+1. It saves one keyword.
 
 #### About the problems of read-only values mentioned by Russ
 
@@ -772,7 +773,8 @@ and may cause some design flaws.
 
 ```
 type Counter struct {
-	mu sync.Mutex:writable
+	mu sync.Mutex:writable // will be always writable (and also a writer),
+	                       // even if its containing struct value is a read-only.
 	n  uint64
 }
 
@@ -787,3 +789,13 @@ type Counter struct {
 	            // of constants, but I feel this trade-off isn't worth it.
 }
 ```
+
+To support partial read-only, the following rules need to be added:
+* constants are always unaddressable.
+* values of `struct{t T:writable}` can be converted/assignable to `struct{t T}`.
+* function values
+  * values of `func (struct{t T})` can be converted/assignable to `func (struct{t T:writable})`.
+  * values of `func () struct{t T:writable}` can be converted/assignable to `func () struct{t T}`.
+  * values of `func (struct{t T})` and `func (struct{t T:writable}):reader` can't be converted to each other.
+
+
