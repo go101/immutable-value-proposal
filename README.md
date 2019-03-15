@@ -794,9 +794,11 @@ To support partial read-only, the following rules need to be added:
 1. constants are always unaddressable.
 1. values of `struct{t T:writable}` can be converted/assignable to `struct{t T}`.
 1. function values
-  * values of `func (struct{t T})` can be converted/assignable to `func (struct{t T:writable})`.
-  * values of `func () struct{t T:writable}` can be converted/assignable to `func () struct{t T}`.
-  * values of `func (struct{t T})` and `func (struct{t T:writable}):reader` can't be converted to each other.
+	1. values of `func (struct{t T})` can be converted/assignable to `func (struct{t T:writable})`.
+	1. values of `func () struct{t T:writable}` can be converted/assignable to `func () struct{t T}`.
+	1. values of `func (struct{t T})` and `func (struct{t T:writable}):reader` can't be converted to each other.
 
 Another simpler rule design is to forbid the conversions mentioned in the 2nd and 3rd rules.
+
+This means, the addressable constant feature and the partial read-only feature are mutually exclusive. 
 
