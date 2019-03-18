@@ -134,8 +134,14 @@ The meanings of **reader** and **writer** values:
   Note, the writer head itself might be a constant, which is a read-only value.
 
 Some details about the `T:reader` notation need to be noted:
-1. `:reader` is not allowed to appear in type declarations.
-   For example, `type T []int:reader` is invalid.
+1. `:reader` is not allowed to appear in type declarations,
+   except it is used to specify function parameter and result roles.
+   * For example, `type T []int:reader` is invalid,
+     but `type T func (T:reader)` is valid.
+   * And please note that, as long as one result of a function is a reader value,
+     then the result list part of the function proptotype literal
+     must be enclosed in a pair of `()`. For example,
+     `func() T:reader` is invalid, it must be `func() (T:reader)`.
 1. The notation `[]*chan T:reader` can only mean `([]*chan T):reader`,
    whereas `[]*chan (T:reader)`, `[]*((chan T):reader)`
    and `[]((*chan T):reader)` are all invalid notations.
@@ -148,10 +154,7 @@ Some details about the `T:reader` notation need to be noted:
      But for conviences, sometimes, calling values of non-reader types
      as reader values in descriptions are allowed.
    * For a non-reader type `T`, the notation `T:reader` is invaid.
-     For this reason, `func() T:reader` means `func() (T:reader)`
-     instead of `(func() T):reader`.
-     However, please note, `[]func() T:reader` means `([]func() T):reader`,
-     which is different from `[](func() T:reader):reader`.
+     For example (again), `func() T:reader` is invalid.
 
 **A writer value is assignable to a reader variable,
 but a reader value is not assignable to a writer variable.**
