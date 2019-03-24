@@ -10,11 +10,10 @@ Old versions:
 * [the immutable-type/value interpretation version: final+fixed. With interface design flaw](README-v5.md)
 * [final+fixed. Without partial read-only](README-v6.md)
 * [final+fixed. With partial read-only](README-v7.md)
-* final+reader/writer roles. Partial read-only removed. (v8, the currrent version)
+* [const+reader/writer roles. Partial read-only removed](README-v8.md)
+* final+reader/writer roles. (v9, the currrent version)
 
-_(Comparing to the last revision v7, this revision removes partial read-only,
-for partial read-only will bring many complexities and cause some design flaws.)_
-
+_(This revision reverts the `const` keyword in v8 to `final`, to avoid some confusions.)_
 
 This revision is a little Go 1 incompatible, for it needs a new keyword `final`.
 
@@ -77,29 +76,30 @@ and extend the value range of the 3rd genre.
 This proposal treats the `self_modifiable` as a value property.
 The current constant value concpet is extended.
 * `{self_modifiable: true}` values (variables) are declared with `var`.
-* `{self_modifiable: false}` values (constants) are declared with `const`
-   As always, a named constant must be bound a value in its declaration.
-   Constants can be values of any type, not limited to values of basic types.
-   Please note that, although a constant itself can't be modified,
-   the values referenced by the constant might be modifiable.
+* `{self_modifiable: false}` values (finals) are declared with `final`
+   Like named constants, a named final must be bound a value in its declaration.
+   But unlike named constants, finals can be values of any type, not limited to values of basic types.
+   We can view finals as runtime constants.
+   Please note that, although a final itself can't be modified,
+   the values referenced by the final might be modifiable.
    (Much like JavaScript `const` values and Java `final` values.)
 
-Most intermediate results in Go should be viewed as constant values,
+Most intermediate results in Go should be viewed as final values,
 including function returns, operator operation evaluation results,
 explicit value conversion results, etc.
 
-Constants (themselves) are immutable values.
-Non-basic declared constants will be always allocated in memory somewhere,
-but a basic declared constant will only be allocated in memory only when needed
+Finals (themselves) are immutable values.
+Non-basic declared finals will be always allocated in memory somewhere,
+but a basic declared final will only be allocated in memory only when needed
 (if it is ever taken address in code).
 
-Note, although a constant itself is an immutable value,
-whether or not the values referenced by a constant are immutable
-values depends on the specified role (see the next section) of the constant.
+Note, although a final itself is an immutable value,
+whether or not the values referenced by the final are immutable
+values depends on the specified role (see the next section) of the final.
 
-There is not a short constant declartion form.
+There is not a short final declartion form.
 Shorted declared values are all variables.
-Function parameters and results also can't be delcared as constants.
+Function parameters and results also can't be delcared as finals.
 
 #### value roles: reader and writer
 
@@ -110,8 +110,8 @@ to ease the syntax designs, we can also think they are properties of types.
 
 The notation `T:reader` is introduced to represent a reader type.
 Its values are called reader values.
-The notation can be used to declare package-level variable/constants,
-local variable/constants, and function parameter/result variables.
+The notation can be used to declare package-level variables/finals,
+local variables/finals, and function parameter/result variables.
 But it can't be used to specifiy struct field types.
 Fields of a struct value will inherit the roles from the struct value.
 
@@ -132,7 +132,7 @@ The meanings of **reader** and **writer** values:
   (from the view of the writer value).
   In other words, a writer value represents a writable value chain,
   and the writer value is the head of the chain.
-  Note, the writer head itself might be a constant, which is a read-only value.
+  Note, the writer head itself might be a final, which is a read-only value.
 
 Some details about the `T:reader` notation need to be noted:
 1. `:reader` is not allowed to appear in type declarations,
@@ -166,14 +166,14 @@ The `:reader` suffix can only follow r-values (right-hand-side values).
 
 You may have got it, a value hosted at a specified memory address may
 represent as a read-only value or a writable value, depending on context.
-So a non-constant read-only values might be not an immutable value.
-(But there are really some non-constant read-only values which are immutable values.
+So a non-final read-only values might be not an immutable value.
+(But there are really some non-final read-only values which are immutable values.
 Please read the following for such examples.)
 
 #### assignment and conversion rules
 
 Above has mentioned:
-* a named constant must be bound to a value in its declaration.
+* a named final must be bound to a value in its declaration.
   It can't be assigned to again later.
 * a writer value is assignable to a reader variable,
   but a reader value is not assignable to a writer variable.
@@ -185,9 +185,9 @@ An example:
 ```
 {
 	var x = []*int{new(int)} // x is a writer variable
-	const y = x              // y is a writer constant
+	final y = x              // y is a writer final
 	var z []*int:reader = x  // z is a reader variable
-	const w = y:reader       // w is a reader constant
+	final w = y:reader       // w is a reader final
 	
 	// x, y, z and w share elements.
 	
@@ -196,14 +196,14 @@ An example:
 	println(*z[0])               // 123
 	
 	y[0] = new(int); *y[0] = 789 // ok
-	y = nil                      // error: y is a constant
+	y = nil                      // error: y is a final
 	println(*w[0])               // 789
 	
 	*z[0] = 555; z[0] = new(int) // error: z[0] and *z[0] are read-only
 	z = nil                      // ok
 	
 	*w[0] = 555; w[0] = new(int) // error: w[0] and *w[0] are read-only
-	w = nil                      // error: w is a constant
+	w = nil                      // error: w is a final
 	
 	x = z // error: reader value z can't be assigned to writer value x
 }
@@ -217,14 +217,14 @@ However, in the following example, the slice elements are immutable.
 	s[0] = 9 // error: s[0] is read-only
 	
 	// S and its elements are both immutable.
-	const S = []int{1, 2, 3}:reader
+	final S = []int{1, 2, 3}:reader
 }
 ```
 
 More examples:
 ```
 // An immutable error value.
-const FileNotExist = errors.New("file not exist"):reader
+final FileNotExist = errors.New("file not exist"):reader
 
 var n int:reader // error: int is a non-reader type
 
@@ -235,7 +235,7 @@ func Foo(m http.Request:reader, n map[string]int:reader) (o []int:reader, p chan
 func Print(values ...interface{}:reader) {...}
 
 // Some short declartions. The items on the left sides
-// are all variables. No ways to short delcare constants.
+// are all variables. No ways to short delcare finals.
 {
 	oldA, newB := va, vb:reader // newB is a reader variable
 
@@ -248,13 +248,13 @@ func Print(values ...interface{}:reader) {...}
 }
 ```
 
-#### about constant, reader, read-only, and immutable values
+#### about final, reader, read-only, and immutable values
 
 From the above descriptions and explainations, we know:
-* a constant itself is not only a read-only value, it is also an immutable value.
-* a reader value may be a variable or a constant,
+* a final itself is not only a read-only value, it is also an immutable value.
+* a reader value may be a variable or a final,
   so it may be read-only or writable.
-* a writer value may be a variable or a constant,
+* a writer value may be a variable or a final,
   so it may be read-only or writable.
 * some read-only values are immutable values, but most are not.
 
@@ -268,12 +268,12 @@ a read-only value which is not an immutable value.
 
 * Dereference of a reader pointer results a read-only value.
 * Dereference of a writer pointer results a writable value.
-* Taking address of an addressable constant or a reader value results a reader pointer.
+* Taking address of an addressable final or a reader value results a reader pointer.
 * Taking address of an addressable writer value results a writer pointer.
 
 Example:
 ```
-const x = []int{1, 2, 3}
+final x = []int{1, 2, 3}
 
 func foo() {
 	y := &x  // y is reader pointer variable of type *[]int:reader.
@@ -322,7 +322,7 @@ func mut(x []int:reader) []int {
 * Subslice:
   * The subslice result of a reader slice is still a reader slice.
   * The subslice result of a writer slice is still a writer slice.
-  * The subslice result of a constant or reader array is a reader slice.
+  * The subslice result of a final or reader array is a reader slice.
 
 Example 1:
 ```
@@ -345,12 +345,12 @@ func foo() {
 	x = nil      // ok
 	y = T{}      // ok
 	
-	const w = x // w is a reader constant.
+	final w = x // w is a reader final.
 	u := w[:]   // u is a reader slice variable.
 	
-	// v is a writer slice constant.
-	const v = []T{{123, nil}, {789, new(int)}}
-	v = nil    // error: v is a constant
+	// v is a writer slice final.
+	final v = []T{{123, nil}, {789, new(int)}}
+	v = nil    // error: v is a final
 	v[1] = T{} // ok
 	
 	_ = append(u, T{}) // error: can't append to reader slices
@@ -365,14 +365,14 @@ Example 2:
 var x = []int{1, 2, 3}
 
 // External packages have no ways to modify elements of x (through S).
-const S = x:reader
+final S = x:reader
 
 // The elements of R can't even be modified in current package!
 // It and its elements are all immutable values.
-const R = []int{7, 8, 9}:reader
+final R = []int{7, 8, 9}:reader
 
 // Q itself can't be modified, but its elements can.
-const Q = []int{7, 8, 9}
+final Q = []int{7, 8, 9}
 ```
 
 Example 3:
@@ -412,7 +412,7 @@ type T struct {
 }
 
 // x and its entries are all immutable values.
-constant x = map[string]T{"foo": T{a: 123, b: new(int)}}:reader
+final x = map[string]T{"foo": T{a: 123, b: new(int)}}:reader
 
 bar(x) // ok
 
@@ -442,25 +442,25 @@ func bar(v map[string]T:reader) { // v is a reader variable
 #### channels
 
 * Send
-  * We can't send values to constant channels.
+  * We can't send values to final channels.
   * We can send values of any genres to a reader channel.
   * We can only send writer values to a writer channel.
 * Receive
-  * We can't receive values from constant channels.
+  * We can't receive values from final channels.
   * Receiving from a reader channel results a reader value.
   * Receiving from a writer channel results a writer value.
 
 Example:
 ```
-const ch = make(chain *int, 1)
+final ch = make(chain *int, 1)
 
 func foo(c chan *int:reader) {
 	x := <-c // ok. x is a reader variable of type *int:reader.
 	y := new(int)
 	c <- y // ok
 
-	ch <- x // error: ch is a constant channel
-	<-ch    // error: ch is a constant channel
+	ch <- x // error: ch is a final channel
+	<-ch    // error: ch is a final channel
 	...
 }
 ```
@@ -594,7 +594,7 @@ then the reader type `T:reader` also implements the reader interface type `I:rea
   * The dynamic type of a writer interface value is a writer type.
   * The dynamic type of a reader interface value is a reader type.
 * Box
-  * No values can be boxed into constant interface values (except the initial bound values).
+  * No values can be boxed into final interface values (except the initial bound values).
   * reader values can't be boxed into writer interface values.
   * Values of any genres can be boxed into a reader interface value.
 * Assert
