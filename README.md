@@ -71,10 +71,9 @@ and constant basic values into either the 3rd or the 4th genre.)
 This proposal will let Go support values of the 2nd and 4th genres,
 and extend the value range of the 3rd genre.
 
-#### variables and (extended) constants
+#### variables and finals
 
 This proposal treats the `self_modifiable` as a value property.
-The current constant value concpet is extended.
 * `{self_modifiable: true}` values (variables) are declared with `var`.
 * `{self_modifiable: false}` values (finals) are declared with `final`
    Like named constants, a named final must be bound a value in its declaration.
@@ -783,19 +782,19 @@ type Counter struct {
 }
 
 {
-	const c Counter
+	final c Counter
 	c.mu.Lock() // error: c.mu is read-only
 
 	var p = &c  // p is a reader pointer of type *Counter:reader
 	p.mu.Lock() // ok by the rule, but it makes c become a non-immutable value,
 	            // which may cause some confusions.
 	            // To avoid such cases happening, we can forbid taking addresses
-	            // of constants, but I feel this trade-off isn't worth it.
+	            // of finals, but I feel this trade-off isn't worth it.
 }
 ```
 
 To support partial read-only, the following rules need to be added:
-1. constants are always unaddressable.
+1. finals are always unaddressable.
 1. values of `struct{t T:writable}` can be converted/assignable to `struct{t T}`.
 1. function values
 	1. values of `func (struct{t T})` can be converted/assignable to `func (struct{t T:writable})`.
@@ -804,6 +803,6 @@ To support partial read-only, the following rules need to be added:
 
 Another simpler rule design is to forbid the conversions mentioned in the 2nd and 3rd rules.
 
-This means, the addressable constant feature and the partial read-only feature are mutually exclusive.
-I prefer keeping the addressable constant feature.
+This means, the addressable final feature and the partial read-only feature are mutually exclusive.
+I prefer keeping the addressable final feature.
 
