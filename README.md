@@ -135,7 +135,7 @@ The meanings of **reader** and **writer** values:
 
 Some details about the `T:reader` notation need to be noted:
 1. `:reader` is not allowed to appear in type declarations,
-   except it is used to specify function parameter and result roles.
+   except it shows up as function parameter and result roles.
    * For example, `type T []int:reader` is invalid,
      but `type T func (T:reader)` is valid.
    * And please note that, as long as one result of a function is a reader value,
@@ -145,16 +145,16 @@ Some details about the `T:reader` notation need to be noted:
 1. The notation `[]*chan T:reader` can only mean `([]*chan T):reader`,
    whereas `[]*chan (T:reader)`, `[]*((chan T):reader)`
    and `[]((*chan T):reader)` are all invalid notations.
-1. Some types are non-reader types, including basic types, function types,
-   struct types with all field types are non-reader types,
-   array types with non-reader element types,
-   and channel types with non-reader element types.
-   The reader and writer roles are non-sense for non-reader values.
-   * Values of non-reader types are always viewed as writer values.
-     But for conviences, sometimes, calling values of non-reader types
-     as reader values in descriptions are allowed.
-   * For a non-reader type `T`, the notation `T:reader` is invaid.
-     For example (again), `func() T:reader` is invalid.
+1. Some kinds of types are always non-reader types, including basic types and function types.
+   So, `:reader` is not allowed to follow such type names and literal.
+   For example (again), `func() T:reader` is invalid.
+1. Struct types which all field types are non-reader types
+   and array/channel types with non-reader element types
+   are also non-reader types. But, to avoid const-poisoning alike problems,
+   such type notations can be following with `:reader`.
+   But the `:reader` suffix is a non-sense for such types.
+   For example, `[5]struct{a int}` and `[5]struct{a int}:reader`
+   have no differences.
 
 **A writer value is assignable to a reader variable,
 but a reader value is not assignable to a writer variable.**
@@ -483,13 +483,13 @@ To avoid function duplications like the following code shows:
 func Split_1(v []byte, sep []byte:reader) [][]byte {...}
 
 // split reader byte slices
-func Split_2(v []byte:reader, sep []byte:reader) [][]byte:reader {...}
+func Split_2(v []byte:reader, sep []byte:reader) ([][]byte:reader) {...}
 ```
 
 A role parameter concept is introduced,
 so that the above two function can be declared as one:
 ```
-func Split(v []byte::r, sep []byte:reader) [][]byte::r {...}
+func Split(v []byte::r, sep []byte:reader) ([][]byte::r) {...}
 ```
 
 Here, `:r` is called a role parameter.
@@ -630,10 +630,10 @@ type T1 []int
 func (T1) M([]int:reader) []int
 
 type T2 []int
-func (T2) M([]int) []int:reader
+func (T2) M([]int) ([]int:reader)
 
 type T3 []int
-func (T3) M([]int:reader) []int:reader
+func (T3) M([]int:reader) ([]int:reader)
 
 type I interface {
 	M([]int) []int:reader
