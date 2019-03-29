@@ -88,10 +88,6 @@ including function returns, operator operation evaluation results,
 explicit value conversion results, etc.
 
 Finals (themselves) are immutable values.
-Non-basic declared finals will be always allocated in memory somewhere,
-but a basic declared final will only be allocated in memory only when needed
-(if it is ever taken address in code).
-
 Note, although a final itself is an immutable value,
 whether or not the values referenced by the final are immutable
 values depends on the specified role (see the next section) of the final.
@@ -105,7 +101,7 @@ Function parameters and results also can't be delcared as finals.
 This proposal proposes to add a value role concept to
 denote the `ref_modifiable` property.
 Although roles are properties of values,
-to ease the syntax designs, we can also think they are properties of types.
+to ease the syntax designs, we can think they are also properties of types.
 
 The notation `T:reader` is introduced to represent a reader type.
 Its values are called reader values.
@@ -151,14 +147,14 @@ Some details about the `T:reader` notation need to be noted:
 1. Struct types which all field types are non-reader types
    and array/channel types with non-reader element types
    are also non-reader types. But, to avoid const-poisoning alike problems,
-   such type notations can be following with `:reader`.
+   such type notations can be followed with `:reader`.
    But the `:reader` suffix is a non-sense for such types.
    For example, `[5]struct{a int}` and `[5]struct{a int}:reader`
    have no differences.
 
 **A writer value is assignable to a reader variable,
 but a reader value is not assignable to a writer variable.**
-This the most important principle of this proposal.
+This is the most important principle of this proposal.
 
 A notation `v:reader` is introduced to convert a writer value `v` to a reader value,
 The `:reader` suffix can only follow r-values (right-hand-side values).
@@ -249,7 +245,7 @@ func Print(values ...interface{}:reader) {...}
 
 #### about final, reader, read-only, and immutable values
 
-From the above descriptions and explainations, we know:
+From the above descriptions and explanations, we know:
 * a final itself is not only a read-only value, it is also an immutable value.
 * a reader value may be a variable or a final,
   so it may be read-only or writable.
