@@ -43,6 +43,10 @@ However, this proposal has involved so much that
 it has become into a much more practical solution with
 more ideas and details than the just mentioned ones.
 
+This propsoal is not intended to be accepted, at least soon.
+It is more a documentation to show the problems and possible solutions
+in supporting immutable and read-only values in Go.
+
 ## The main points of this proposal
 
 We know each value has a property, `self_modifiable`,
@@ -485,13 +489,13 @@ func Split_2(v []byte:reader, sep []byte:reader) ([][]byte:reader) {...}
 A role parameter concept is introduced,
 so that the above two function can be declared as one:
 ```
-func Split(v []byte::r, sep []byte:reader) ([][]byte::r) {...}
+func Split(v []byte::q, sep []byte:reader) ([][]byte::q) {...}
 ```
 
-Here, `:r` is called a role parameter.
+Here, `:q` is called a role parameter.
 Its name can be arbitrary non-blank identifier,
 but the two occurrences must be consistent.
-Short role parameter names are recommended, such as `r`, `p`, `q`.
+Short role parameter names are recommended, such as `p` and `q`.
 
 Use the `Split` function.
 ```
@@ -801,4 +805,7 @@ Another simpler rule design is to forbid the conversions mentioned in the 2nd an
 
 This means, the addressable final feature and the partial read-only feature are mutually exclusive.
 I prefer keeping the addressable final feature.
+This feature will break less user code,
+for some user code may take the addresses of many error values declared in std packages.
+This feature will continue to make such code valid.
 
