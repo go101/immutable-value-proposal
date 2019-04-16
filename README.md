@@ -738,7 +738,7 @@ also makes a good summary of the benefits of read-only values.
 
 #### Rationales for the `T:reader` notation
 
-1. It is less discrete than `reader T`. I think `func (Ta:reader) Tx:reader` has a better readibility than `func (reader Ta)(reader Tx)`.
+1. It is less discrete than `reader T`. I think `func (Ta:reader) (Tx:reader)` has a better readibility than `func (reader Ta)(reader Tx)`.
 1. It conforms to Go type literal design philosophy: more importants shown firstly.
 1. It saves one keyword.
 
