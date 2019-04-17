@@ -809,3 +809,64 @@ This feature will break less user code,
 for some user code may take the addresses of many error values declared in std packages.
 This feature will continue to make such code valid.
 
+#### The problem when reader parameters in a library package changed to writers.
+
+A reader parameter in a library package may be changed to a writer parameter in a newer version.
+For example:
+
+```
+// v1.0.0
+package apkg
+
+func F(s []byte:reader) {
+	// elements of s can't be modified.
+}
+```
+
+and
+
+```
+// v1.1.0
+package apkg
+
+func F(s []byte) {
+	// elements of s may be modified.
+}
+```
+
+The following code in caller package will keep valid after the change,
+this may cause some unexpected behaviors.
+
+```
+package main
+
+import "x.y,z/apkg"
+
+fnc main() {
+	...
+	
+	s := []byte{1, 2, 3}
+	apkg.F(s)
+	...
+}
+```
+
+A professional programmer should write the above code as
+```
+package main
+
+import "x.y,z/apkg"
+
+fnc main() {
+	...
+	
+	s := []byte{1, 2, 3}
+	apkg.F(s:reader)
+	...
+}
+```
+
+so that the code will fail to compile after the library change.
+
+However, this makes some inconveniences in programming.
+
