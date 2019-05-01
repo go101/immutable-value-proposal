@@ -1,22 +1,19 @@
 # A proposal to support read-only and immutable values in Go
 
 Old versions:
-* [the proposal thread](https://github.com/golang/go/issues/31464)([the old one](https://github.com/golang/go/issues/29422)), and the [golang-dev thread](https://groups.google.com/forum/#!topic/golang-dev/5M9F09S_k0g)
-* [v0: the initial proposal](README-v0.md)
-* [v1: the `var:N` version](README-v1.md)
-* [v2: the pure-immutable-value interpretation version](README-v2.md)
-* [v3: the immutable-type interpretation version](README-v3.md)
-* [v4: the immutable-type/value interpretation version: const+fixed](README-v4.md)
-* [v5: the immutable-type/value interpretation version: final+fixed. With interface design flaw](README-v5.md)
-* [v6: final+fixed. Without partial read-only](README-v6.md)
-* [v7: final+fixed. With partial read-only](README-v7.md)
-* [v8: const+reader/writer roles. Partial read-only removed](README-v8.md)
-* [v9: final+reader/writer roles](README-v9.md)
-* v9.1: final+reader/writer roles. Disallow passing writer values as reader arguments. (the currrent revision)
+* [the proposal thread](https://github.com/golang/go/issues/29422), and the [golang-dev thread](https://groups.google.com/forum/#!topic/golang-dev/5M9F09S_k0g)
+* [the initial proposal](README-v0.md)
+* [the `var:N` version](README-v1.md)
+* [the pure-immutable-value interpretation version](README-v2.md)
+* [the immutable-type interpretation version](README-v3.md)
+* [the immutable-type/value interpretation version: const+fixed](README-v4.md)
+* [the immutable-type/value interpretation version: final+fixed. With interface design flaw](README-v5.md)
+* [final+fixed. Without partial read-only](README-v6.md)
+* [final+fixed. With partial read-only](README-v7.md)
+* [const+reader/writer roles. Partial read-only removed](README-v8.md)
+* final+reader/writer roles. (v9, the currrent version)
 
-
-_(Comparing to the last revision v9, this version passing writer values as reader arguments (including receiver arguments),
-to avoid [the problem mentioned in v9](README-v9.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers).)_
+_(This revision reverts the `const` keyword in v8 to `final`, to avoid some confusions.)_
 
 This revision is a little Go 1 incompatible, for it needs a new keyword `final`.
 
@@ -151,8 +148,6 @@ Some details about the `T:reader` notation need to be noted:
 1. Some kinds of types are always non-reader types, including basic types and function types.
    So, `:reader` is not allowed to follow such type names and literal.
    For example (again), `func() T:reader` is invalid.
-   The saying of "the reader version of a non-reader type" does exist.
-   The reader version of a non-reader type is the non-reader type itself.
 1. Struct types which all field types are non-reader types
    and array/channel types with non-reader element types
    are also non-reader types. But, to avoid const-poisoning alike problems,
@@ -160,6 +155,10 @@ Some details about the `T:reader` notation need to be noted:
    But the `:reader` suffix is a non-sense for such types.
    For example, `[5]struct{a int}` and `[5]struct{a int}:reader`
    have no differences.
+
+**A writer value is assignable to a reader variable,
+but a reader value is not assignable to a writer variable.**
+This is the most important principle of this proposal.
 
 A notation `v:reader` is introduced to convert a writer value `v` to a reader value,
 The `:reader` suffix can only follow r-values (right-hand-side values).
@@ -175,10 +174,8 @@ Please read the following for such examples.)
 Above has mentioned:
 * a named final must be bound to a value in its declaration.
   It can't be assigned to again later.
-* a writer value is assignable to a reader variable, but
-  a writer value can't be passed as a reader argument, it must be
-  explicitly converted to a reader value to be used as a reader argument.
-* a reader value is not assignable to a writer variable.
+* a writer value is assignable to a reader variable,
+  but a reader value is not assignable to a writer variable.
 * a writer value can be converted to a reader value, but not vice versa.
 
 #### some examples
@@ -517,8 +514,6 @@ Use the `Split` function.
 
 #### method sets
 
-We can delcare methods with recievers of reader types.
-
 The method set of reader type `T:reader` is always a subset of writer type `T`.
 This means when a method `M` is explicitly declared for reader type `T:reader`,
 then a corresponding implicit method with the same name
@@ -526,19 +521,15 @@ will be declared for writer type `T` by compilers.
 ```
 func (T:reader) M() {} // explicitly declared. (A reader method)
 /*
-func (t T) reader.M() {t:reader.M()} // implicitly declared. (A writer method)
+func (t T) M() {t:reader.M()} // implicitly declared. (A writer method)
 */
 
 var t T
+t.M()
+// <=>
 t:reader.M()
 // <=>
 T:reader.M(t:reader)
-```
-
-Note, to avoid [the problem mentioned in v9](README-v9.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers), the following method/function calls are invalid:
-```
-var t T
-t.M()
 // <=>
 T:reader.M(t)
 // <=>
@@ -817,3 +808,65 @@ I prefer keeping the addressable final feature.
 This feature will break less user code,
 for some user code may take the addresses of many error values declared in std packages.
 This feature will continue to make such code valid.
+
+#### The problem when reader parameters in a library package changed to writers.
+
+A reader parameter in a library package may be changed to a writer parameter in a newer version.
+For example:
+
+```
+// v1.0.0
+package apkg
+
+func F(s []byte:reader) {
+	// elements of s can't be modified.
+}
+```
+
+and
+
+```
+// v1.1.0
+package apkg
+
+func F(s []byte) {
+	// elements of s may be modified.
+}
+```
+
+The following code in caller package will keep valid after the change,
+this may cause some unexpected behaviors.
+
+```
+package main
+
+import "x.y,z/apkg"
+
+fnc main() {
+	...
+	
+	s := []byte{1, 2, 3}
+	apkg.F(s)
+	...
+}
+```
+
+A professional programmer should write the above code as
+```
+package main
+
+import "x.y,z/apkg"
+
+fnc main() {
+	...
+	
+	s := []byte{1, 2, 3}
+	apkg.F(s:reader)
+	...
+}
+```
+
+so that the code will fail to compile after the library change.
+
+However, this makes some inconveniences in programming.
+
