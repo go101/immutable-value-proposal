@@ -15,8 +15,8 @@ Old versions:
 * v9.1: final+reader/writer roles. Disallow passing writer values as reader arguments. (the currrent revision)
 
 
-_(Comparing to the last revision v9, this version passing writer values as reader arguments (including receiver arguments),
-to avoid [the problem mentioned in v9](README-v9.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers).)_
+_Comparing to the last revision v9, this version forbids passing writer values as reader arguments (including receiver arguments),
+to avoid [the problem mentioned in v9](README-v9.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers)._
 
 This revision is a little Go 1 incompatible, for it needs a new keyword `final`.
 
@@ -264,6 +264,9 @@ No data synchronizations are needed in concurrently reading immutable values,
 but data synchronizations are still needed when concurrently reading
 a read-only value which is not an immutable value.
 
+NOTE: the above mentioned "immutable values" all means "practically immutable values".
+Such values may be modified through unsafe ways.
+
 ## Detailed rules for values of all kinds of types
 
 #### safe pointers
@@ -508,8 +511,8 @@ Use the `Split` function.
 	_ = Split(x:reader, []byte("/")) // call the reader version
 	
 	// Use Split function as values.
-	var fw = Split{r: writer} // I haven't got better syntax yet.
-	var fr = Split{r: reader}
+	var fw = Split{q: writer} // I haven't got better syntax yet.
+	var fr = Split{q: reader}
 	_ = fr(x, []byte("/")) // <=> Split(x:reader, []byte("/"))
 	                       // x is converted to a reader value implicitly.
 }
