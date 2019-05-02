@@ -507,14 +507,15 @@ Use the `Split` function.
 ```
 {
 	var x = []byte{"aaa/bbb/ccc/ddd"}
-	_ = Split(x, []byte("/"))        // call the writer version
-	_ = Split(x:reader, []byte("/")) // call the reader version
+	var y = Split(x, []byte("/"))        // call the writer version
+	                                     // y is a writer value.
+	var z = Split(x:reader, []byte("/")) // call the reader version
+	                                     // z is a reader value.
 	
 	// Use Split function as values.
-	var fw = Split{q: writer} // I haven't got better syntax yet.
+	var fw = Split{q: writer} // I haven't got better syntax idea yet.
 	var fr = Split{q: reader}
-	_ = fr(x, []byte("/")) // <=> Split(x:reader, []byte("/"))
-	                       // x is converted to a reader value implicitly.
+	_ = fr(x:reader, []byte("/"))
 }
 ```
 
@@ -530,6 +531,9 @@ will be declared for writer type `T` by compilers.
 func (T:reader) M() {} // explicitly declared. (A reader method)
 /*
 func (t T) reader.M() {t:reader.M()} // implicitly declared. (A writer method)
+*/
+/*
+func T:reader.M(t T:reader) {t.M()} // an implicitly declared function.
 */
 
 var t T
@@ -563,13 +567,13 @@ An interface type can specify some read-only methods. For example:
 type I interface {
 	M0(Ta) Tb // a writer method
 
-	reader.M2(Tx) Ty // a reader method (also called receiver-read-only method).
+	reader.M2(Tx) Ty // a reader method.
 	                 // NOTE: this is an exported method.
 }
 ```
 
 Similar to non-interface type, if a reader interface type
-explicitly specified a read-only method `reader.M`,
+explicitly specified a reader method `reader.M`,
 it also implicitly specifies a writer method with the same name `M`.
 
 The method set specified by type `I` contains three methods, `M0`, `reader.M2` and `M2`.
@@ -624,12 +628,12 @@ var x = []int{1, 2, 3}
 var y = [][]int{x, x}:reader
 var u interface{} = x        // ok
 u = y                        // error: can't assign a reader value to a writer value.
-var v interface{} = y        // ok. v is deduced as a reader interface value.
+var v interface{}:reader = y // ok. v is deduced as a reader interface value.
 var w = v.([][]int)          // ok. Like y, w is a reader value of type [][]int:reader.
 v = x                        // ok
 var s = v.([]int)            // ok, u is a reader value of type []int:reader.
 var t = v.([]int:reader)     // ok, equivalent to the above one.
-var t = u.([]int:reader)     // ok, Assert + convert.
+var q = u.([]int:reader)     // ok, Assert + convert.
 var r = u.([]int):reader     // ok, Assert then convert. Equivalent to the above one.
 ```
 
