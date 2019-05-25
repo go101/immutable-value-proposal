@@ -12,10 +12,7 @@ Versions:
 * [v7: final+fixed. With partial read-only](README-v7.md)
 * [v8: const+reader/writer roles. Partial read-only removed](README-v8.md)
 * [v9.0: final+reader/writer roles](README-v9.0.md)
-* [v9.1: final+reader/writer roles](README-v9.1.md). Disallow passing writer values as reader arguments.
-
-(v9.a+ is forked from v9.1, by removing the **final value** concept. So now this project contains two proposals actually.)
-
-* [v9.a, reader + read-only values](README-v9.a.md)
+* [v9.1: final+reader/writer roles](README-v9.1.md). Disallows passing writer values as reader arguments.
+* [v9.a, reader + read-only values](README-v9.a.md). Removes **final values** concept.
 
 
