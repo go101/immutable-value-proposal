@@ -1,13 +1,5 @@
 # A Go immutable types/values proposal
 
-Old versions:
-* [the proposal thread](https://github.com/golang/go/issues/29422).
-* [the `var:N` version](README-v1.md)
-* [the pure-immutable-value interpretation version](README-v2.md)
-* [the immutable-type interpretation version](README-v3.md)
-* [the immutable-type/value interpretation version: const.fixed](README-v4.md)
-
-
 This proposal not Go 1 compatible. Please read the last section of this proposal for incompatible cases.
 
 Any criticisms and improvement ideas are welcome, for

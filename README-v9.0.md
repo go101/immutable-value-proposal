@@ -1,17 +1,4 @@
-# A proposal to support read-only and immutable values in Go
-
-Old versions:
-* [the proposal thread](https://github.com/golang/go/issues/29422), and the [golang-dev thread](https://groups.google.com/forum/#!topic/golang-dev/5M9F09S_k0g)
-* [the initial proposal](README-v0.md)
-* [the `var:N` version](README-v1.md)
-* [the pure-immutable-value interpretation version](README-v2.md)
-* [the immutable-type interpretation version](README-v3.md)
-* [the immutable-type/value interpretation version: const+fixed](README-v4.md)
-* [the immutable-type/value interpretation version: final+fixed. With interface design flaw](README-v5.md)
-* [final+fixed. Without partial read-only](README-v6.md)
-* [final+fixed. With partial read-only](README-v7.md)
-* [const+reader/writer roles. Partial read-only removed](README-v8.md)
-* final+reader/writer roles. (v9, the currrent version)
+# A proposal to support read-only and practical immutable values in Go
 
 _(This revision reverts the `const` keyword in v8 to `final`, to avoid some confusions.)_
 
@@ -114,9 +101,9 @@ local variables/finals, and function parameter/result variables.
 But it can't be used to specifiy struct field types.
 Fields of a struct value will inherit the roles from the struct value.
 
-There is not the `T:writer` notation. 
+There is not the `T:writer` notation.
 The *writer role* concept does exist.
-The raw `T` notation means a writer type (in non-struct-field declarations). 
+The raw `T` notation means a writer type (in non-struct-field declarations).
 
 Thw word `reader` can be either a keyword or not.
 If it is designed as not, then it can be viewed as a predeclared role.
@@ -187,23 +174,23 @@ An example:
 	final y = x              // y is a writer final
 	var z []*int:reader = x  // z is a reader variable
 	final w = y:reader       // w is a reader final
-	
+
 	// x, y, z and w share elements.
-	
+
 	x[0] = new(int); *x[0] = 123 // ok
 	x = nil                      // ok
 	println(*z[0])               // 123
-	
+
 	y[0] = new(int); *y[0] = 789 // ok
 	y = nil                      // error: y is a final
 	println(*w[0])               // 789
-	
+
 	*z[0] = 555; z[0] = new(int) // error: z[0] and *z[0] are read-only
 	z = nil                      // ok
-	
+
 	*w[0] = 555; w[0] = new(int) // error: w[0] and *w[0] are read-only
 	w = nil                      // error: w is a final
-	
+
 	x = z // error: reader value z can't be assigned to writer value x
 }
 ```
@@ -214,7 +201,7 @@ However, in the following example, the slice elements are immutable.
 {
 	var s = []int{1, 2, 3}:reader
 	s[0] = 9 // error: s[0] is read-only
-	
+
 	// S and its elements are both immutable.
 	final S = []int{1, 2, 3}:reader
 }
@@ -280,7 +267,7 @@ func foo() {
 	w := x   // w is deduced as a writer variable of type []int.
 	z[0] = 9 // error: z[0] is read-only.
 	u := &z  // u is like y.
-	
+
 	p1 := &x[1] // p1 is a writer pointer variable.
 	p2 := &z[1] // p2 is a reader pointer variable.
 	...
@@ -343,18 +330,18 @@ func foo() {
 	z := x[:1]   // liek x, z is reader slice.
 	x = nil      // ok
 	y = T{}      // ok
-	
+
 	final w = x // w is a reader final.
 	u := w[:]   // u is a reader slice variable.
-	
+
 	// v is a writer slice final.
 	final v = []T{{123, nil}, {789, new(int)}}
 	v = nil    // error: v is a final
 	v[1] = T{} // ok
-	
+
 	_ = append(u, T{}) // error: can't append to reader slices
 	_ = append(v, T{}) // ok
-	
+
 	...
 }
 ```
@@ -420,7 +407,7 @@ func bar(v map[string]T:reader) { // v is a reader variable
 	*v["foo"].b = 789 // error: v["foo"].b is read-only
 	v["foo"] = T{}    // error: v is a reader map
 	v["baz"] = T{}    // error: v is a reader map
-	
+
 	// m will be deduced as a reader map variable.
 	// That means as long as one element or one key is a reader
 	// value in a map literal, then the map is also a reader value.
@@ -431,7 +418,7 @@ func bar(v map[string]T:reader) { // v is a reader variable
 	}
 	for a, b := range m {
 		// a and b are both reader values of type *int:reader.
-		
+
 		*a = 123 // error: *a is read-only
 		*b = 789 // error: *b is read-only
 	}
@@ -503,7 +490,7 @@ Use the `Split` function.
 	var x = []byte{"aaa/bbb/ccc/ddd"}
 	_ = Split(x, []byte("/"))        // call the writer version
 	_ = Split(x:reader, []byte("/")) // call the reader version
-	
+
 	// Use Split function as values.
 	var fw = Split{r: writer} // I haven't got better syntax yet.
 	var fr = Split{r: reader}
@@ -543,6 +530,8 @@ For type `T` and `*T`, if methods can be declared for them (either explicitly or
 the method set of type `T:reader` is a subset of type `*T:reader`.
 (Or in other words, the method set of type `T` is a subset of type `*T`
 if type `T` is not an interface type.)
+
+Role parameters don't work for receiver parameters.
 
 #### interfaces
 
@@ -603,8 +592,6 @@ then the reader type `T:reader` also implements the reader interface type `I:rea
 
 For this reason, the `xyz ...interface{}` parameter declarations of all the print functions
 in the `fmt` standard package should be changed to `xyz ...interface{}:reader` instead.
-
-Role parameters don't work for receiver parameters.
 
 Example:
 ```
@@ -844,7 +831,7 @@ import "x.y,z/apkg"
 
 fnc main() {
 	...
-	
+
 	s := []byte{1, 2, 3}
 	apkg.F(s)
 	...
@@ -859,7 +846,7 @@ import "x.y,z/apkg"
 
 fnc main() {
 	...
-	
+
 	s := []byte{1, 2, 3}
 	apkg.F(s:reader)
 	...

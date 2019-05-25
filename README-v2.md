@@ -1,9 +1,5 @@
 # A Go immutable values proposal
 
-Old versions:
-* [the propsoal thread](https://github.com/golang/go/issues/29422).
-* [the `var:N` version](README-v1.md)
-
 The new syntax is not Go 1 compatible,
 please read the last section of this proposal for incompatible cases.
 
@@ -155,7 +151,7 @@ Short value declaration examples:
 {
 	newA, newB, oldC := (var.fixed)(va), vb, vc
 	newA, newB, oldC := va.(fixed), vb, vc // equivalent to the above line
-	
+
 	newX, newY, oldZ := (Tx.fixed)(va), (Ty)(vb), vc
 	newX, newY, oldZ := (Tx)(va).(fixed), (Ty)(vb), vc // equivalent to the above line
 }

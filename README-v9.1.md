@@ -1,9 +1,9 @@
 # A proposal to support read-only and practical immutable values in Go
 
-_(Comparing to the last revision v7, this revision removes partial read-only,
-for partial read-only will bring many complexities and cause some design flaws.)_
+_Comparing to the last revision v9, this version forbids passing writer values as reader arguments (including receiver arguments),
+to avoid [the problem mentioned in v9](README-v9.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers)._
 
-This revision is Go 1 compatible.
+This revision is a little Go 1 incompatible, for it needs a new keyword `final`.
 
 Any criticisms and improvement ideas are welcome, for
 * I have not much compiler-related knowledge, so the following designs may have flaws.
@@ -30,6 +30,10 @@ written by Russ.
 However, this proposal has involved so much that
 it has become into a much more practical solution with
 more ideas and details than the just mentioned ones.
+
+This propsoal is not intended to be accepted, at least soon.
+It is more a documentation to show the problems and possible solutions
+in supporting immutable and read-only values in Go.
 
 ## The main points of this proposal
 
@@ -59,46 +63,42 @@ and constant basic values into either the 3rd or the 4th genre.)
 This proposal will let Go support values of the 2nd and 4th genres,
 and extend the value range of the 3rd genre.
 
-#### variables and (extended) constants
+#### variables and finals
 
 This proposal treats the `self_modifiable` as a value property.
-The current constant value concpet is extended.
 * `{self_modifiable: true}` values (variables) are declared with `var`.
-* `{self_modifiable: false}` values (constants) are declared with `const`
-   As always, a named constant must be bound a value in its declaration.
-   Constants can be values of any type, not limited to values of basic types.
-   Please note that, although a constant itself can't be modified,
-   the values referenced by the constant might be modifiable.
+* `{self_modifiable: false}` values (finals) are declared with `final`
+   Like named constants, a named final must be bound a value in its declaration.
+   But unlike named constants, finals can be values of any type, not limited to values of basic types.
+   We can view finals as runtime constants.
+   Please note that, although a final itself can't be modified,
+   the values referenced by the final might be modifiable.
    (Much like JavaScript `const` values and Java `final` values.)
 
-Most intermediate results in Go should be viewed as constant values,
+Most intermediate results in Go should be viewed as final values,
 including function returns, operator operation evaluation results,
 explicit value conversion results, etc.
 
-Constants (themselves) are immutable values.
-Non-basic declared constants will be always allocated in memory somewhere,
-but a basic declared constant will only be allocated in memory only when needed
-(if it is ever taken address in code).
+Finals (themselves) are immutable values.
+Note, although a final itself is an immutable value,
+whether or not the values referenced by the final are immutable
+values depends on the specified role (see the next section) of the final.
 
-Note, although a constant itself is an immutable value,
-whether or not the values referenced by a constant are immutable
-values depends on the specified role (see the next section) of the constant.
-
-There is not a short constant declartion form.
+There is not a short final declartion form.
 Shorted declared values are all variables.
-Function parameters and results also can't be delcared as constants.
+Function parameters and results also can't be delcared as finals.
 
 #### value roles: reader and writer
 
 This proposal proposes to add a value role concept to
 denote the `ref_modifiable` property.
 Although roles are properties of values,
-to ease the syntax designs, we can also think they are properties of types.
+to ease the syntax designs, we can think they are also properties of types.
 
 The notation `T:reader` is introduced to represent a reader type.
 Its values are called reader values.
-The notation can be used to declare package-level variable/constants,
-local variable/constants, and function parameter/result variables.
+The notation can be used to declare package-level variables/finals,
+local variables/finals, and function parameter/result variables.
 But it can't be used to specifiy struct field types.
 Fields of a struct value will inherit the roles from the struct value.
 
@@ -119,11 +119,11 @@ The meanings of **reader** and **writer** values:
   (from the view of the writer value).
   In other words, a writer value represents a writable value chain,
   and the writer value is the head of the chain.
-  Note, the writer head itself might be a constant, which is a read-only value.
+  Note, the writer head itself might be a final, which is a read-only value.
 
 Some details about the `T:reader` notation need to be noted:
 1. `:reader` is not allowed to appear in type declarations,
-   except it is used to specify function parameter and result roles.
+   except it shows up as function parameter and result roles.
    * For example, `type T []int:reader` is invalid,
      but `type T func (T:reader)` is valid.
    * And please note that, as long as one result of a function is a reader value,
@@ -133,37 +133,37 @@ Some details about the `T:reader` notation need to be noted:
 1. The notation `[]*chan T:reader` can only mean `([]*chan T):reader`,
    whereas `[]*chan (T:reader)`, `[]*((chan T):reader)`
    and `[]((*chan T):reader)` are all invalid notations.
-1. Some types are non-reader types, including basic types, function types,
-   struct types with all field types are non-reader types,
-   array types with non-reader element types,
-   and channel types with non-reader element types.
-   The reader and writer roles are non-sense for non-reader values.
-   * Values of non-reader types are always viewed as writer values.
-     But for conviences, sometimes, calling values of non-reader types
-     as reader values in descriptions are allowed.
-   * For a non-reader type `T`, the notation `T:reader` is invaid.
-     For example (again), `func() T:reader` is invalid.
-
-**A writer value is assignable to a reader variable,
-but a reader value is not assignable to a writer variable.**
-This the most important principle of this proposal.
+1. Some kinds of types are always non-reader types, including basic types and function types.
+   So, `:reader` is not allowed to follow such type names and literal.
+   For example (again), `func() T:reader` is invalid.
+   The saying of "the reader version of a non-reader type" does exist.
+   The reader version of a non-reader type is the non-reader type itself.
+1. Struct types which all field types are non-reader types
+   and array/channel types with non-reader element types
+   are also non-reader types. But, to avoid const-poisoning alike problems,
+   such type notations can be followed with `:reader`.
+   But the `:reader` suffix is a non-sense for such types.
+   For example, `[5]struct{a int}` and `[5]struct{a int}:reader`
+   have no differences.
 
 A notation `v:reader` is introduced to convert a writer value `v` to a reader value,
 The `:reader` suffix can only follow r-values (right-hand-side values).
 
 You may have got it, a value hosted at a specified memory address may
 represent as a read-only value or a writable value, depending on context.
-So a non-constant read-only values might be not an immutable value.
-(But there are really some non-constant read-only values which are immutable values.
+So a non-final read-only values might be not an immutable value.
+(But there are really some non-final read-only values which are immutable values.
 Please read the following for such examples.)
 
 #### assignment and conversion rules
 
 Above has mentioned:
-* a named constant must be bound to a value in its declaration.
+* a named final must be bound to a value in its declaration.
   It can't be assigned to again later.
-* a writer value is assignable to a reader variable,
-  but a reader value is not assignable to a writer variable.
+* a writer value is assignable to a reader variable, but
+  a writer value can't be passed as a reader argument, it must be
+  explicitly converted to a reader value to be used as a reader argument.
+* a reader value is not assignable to a writer variable.
 * a writer value can be converted to a reader value, but not vice versa.
 
 #### some examples
@@ -172,9 +172,9 @@ An example:
 ```
 {
 	var x = []*int{new(int)} // x is a writer variable
-	const y = x              // y is a writer constant
+	final y = x              // y is a writer final
 	var z []*int:reader = x  // z is a reader variable
-	const w = y:reader       // w is a reader constant
+	final w = y:reader       // w is a reader final
 
 	// x, y, z and w share elements.
 
@@ -183,14 +183,14 @@ An example:
 	println(*z[0])               // 123
 
 	y[0] = new(int); *y[0] = 789 // ok
-	y = nil                      // error: y is a constant
+	y = nil                      // error: y is a final
 	println(*w[0])               // 789
 
 	*z[0] = 555; z[0] = new(int) // error: z[0] and *z[0] are read-only
 	z = nil                      // ok
 
 	*w[0] = 555; w[0] = new(int) // error: w[0] and *w[0] are read-only
-	w = nil                      // error: w is a constant
+	w = nil                      // error: w is a final
 
 	x = z // error: reader value z can't be assigned to writer value x
 }
@@ -204,14 +204,14 @@ However, in the following example, the slice elements are immutable.
 	s[0] = 9 // error: s[0] is read-only
 
 	// S and its elements are both immutable.
-	const S = []int{1, 2, 3}:reader
+	final S = []int{1, 2, 3}:reader
 }
 ```
 
 More examples:
 ```
 // An immutable error value.
-const FileNotExist = errors.New("file not exist"):reader
+final FileNotExist = errors.New("file not exist"):reader
 
 var n int:reader // error: int is a non-reader type
 
@@ -222,7 +222,7 @@ func Foo(m http.Request:reader, n map[string]int:reader) (o []int:reader, p chan
 func Print(values ...interface{}:reader) {...}
 
 // Some short declartions. The items on the left sides
-// are all variables. No ways to short delcare constants.
+// are all variables. No ways to short delcare finals.
 {
 	oldA, newB := va, vb:reader // newB is a reader variable
 
@@ -235,13 +235,13 @@ func Print(values ...interface{}:reader) {...}
 }
 ```
 
-#### about constant, reader, read-only, and immutable values
+#### about final, reader, read-only, and immutable values
 
-From the above descriptions and explainations, we know:
-* a constant itself is not only a read-only value, it is also an immutable value.
-* a reader value may be a variable or a constant,
+From the above descriptions and explanations, we know:
+* a final itself is not only a read-only value, it is also an immutable value.
+* a reader value may be a variable or a final,
   so it may be read-only or writable.
-* a writer value may be a variable or a constant,
+* a writer value may be a variable or a final,
   so it may be read-only or writable.
 * some read-only values are immutable values, but most are not.
 
@@ -249,18 +249,21 @@ No data synchronizations are needed in concurrently reading immutable values,
 but data synchronizations are still needed when concurrently reading
 a read-only value which is not an immutable value.
 
+NOTE: the above mentioned "immutable values" all means "practically immutable values".
+Such values may be modified through unsafe ways.
+
 ## Detailed rules for values of all kinds of types
 
 #### safe pointers
 
 * Dereference of a reader pointer results a read-only value.
 * Dereference of a writer pointer results a writable value.
-* Taking address of an addressable constant or a reader value results a reader pointer.
+* Taking address of an addressable final or a reader value results a reader pointer.
 * Taking address of an addressable writer value results a writer pointer.
 
 Example:
 ```
-const x = []int{1, 2, 3}
+final x = []int{1, 2, 3}
 
 func foo() {
 	y := &x  // y is reader pointer variable of type *[]int:reader.
@@ -289,10 +292,10 @@ func mut(x []int:reader) []int {
 ```
 #### structs
 
-* Elements of reader struct values are also reader values.
-* Elements of writer struct values are also writer values.
-* Elements of read-only struct values are also read-only values.
-* Elements of writable struct values are also writable values.
+* Fields of reader struct values are also reader values.
+* Fields of writer struct values are also writer values.
+* Fields of read-only struct values are also read-only values.
+* Fields of writable struct values are also writable values.
 
 #### arrays
 
@@ -309,7 +312,7 @@ func mut(x []int:reader) []int {
 * Subslice:
   * The subslice result of a reader slice is still a reader slice.
   * The subslice result of a writer slice is still a writer slice.
-  * The subslice result of a constant or reader array is a reader slice.
+  * The subslice result of a final or reader array is a reader slice.
 
 Example 1:
 ```
@@ -332,12 +335,12 @@ func foo() {
 	x = nil      // ok
 	y = T{}      // ok
 
-	const w = x // w is a reader constant.
+	final w = x // w is a reader final.
 	u := w[:]   // u is a reader slice variable.
 
-	// v is a writer slice constant.
-	const v = []T{{123, nil}, {789, new(int)}}
-	v = nil    // error: v is a constant
+	// v is a writer slice final.
+	final v = []T{{123, nil}, {789, new(int)}}
+	v = nil    // error: v is a final
 	v[1] = T{} // ok
 
 	_ = append(u, T{}) // error: can't append to reader slices
@@ -352,14 +355,14 @@ Example 2:
 var x = []int{1, 2, 3}
 
 // External packages have no ways to modify elements of x (through S).
-const S = x:reader
+final S = x:reader
 
 // The elements of R can't even be modified in current package!
 // It and its elements are all immutable values.
-const R = []int{7, 8, 9}:reader
+final R = []int{7, 8, 9}:reader
 
 // Q itself can't be modified, but its elements can.
-const Q = []int{7, 8, 9}
+final Q = []int{7, 8, 9}
 ```
 
 Example 3:
@@ -399,7 +402,7 @@ type T struct {
 }
 
 // x and its entries are all immutable values.
-constant x = map[string]T{"foo": T{a: 123, b: new(int)}}:reader
+final x = map[string]T{"foo": T{a: 123, b: new(int)}}:reader
 
 bar(x) // ok
 
@@ -429,25 +432,25 @@ func bar(v map[string]T:reader) { // v is a reader variable
 #### channels
 
 * Send
-  * We can't send values to constant channels.
+  * We can't send values to final channels.
   * We can send values of any genres to a reader channel.
   * We can only send writer values to a writer channel.
 * Receive
-  * We can't receive values from constant channels.
+  * We can't receive values from final channels.
   * Receiving from a reader channel results a reader value.
   * Receiving from a writer channel results a writer value.
 
 Example:
 ```
-const ch = make(chain *int, 1)
+final ch = make(chain *int, 1)
 
 func foo(c chan *int:reader) {
 	x := <-c // ok. x is a reader variable of type *int:reader.
 	y := new(int)
 	c <- y // ok
 
-	ch <- x // error: ch is a constant channel
-	<-ch    // error: ch is a constant channel
+	ch <- x // error: ch is a final channel
+	<-ch    // error: ch is a final channel
 	...
 }
 ```
@@ -471,36 +474,39 @@ To avoid function duplications like the following code shows:
 func Split_1(v []byte, sep []byte:reader) [][]byte {...}
 
 // split reader byte slices
-func Split_2(v []byte:reader, sep []byte:reader) [][]byte:reader {...}
+func Split_2(v []byte:reader, sep []byte:reader) ([][]byte:reader) {...}
 ```
 
 A role parameter concept is introduced,
 so that the above two function can be declared as one:
 ```
-func Split(v []byte::r, sep []byte:reader) [][]byte::r {...}
+func Split(v []byte::q, sep []byte:reader) ([][]byte::q) {...}
 ```
 
-Here, `:r` is called a role parameter.
+Here, `:q` is called a role parameter.
 Its name can be arbitrary non-blank identifier,
 but the two occurrences must be consistent.
-Short role parameter names are recommended, such as `r`, `p`, `q`.
+Short role parameter names are recommended, such as `p` and `q`.
 
 Use the `Split` function.
 ```
 {
 	var x = []byte{"aaa/bbb/ccc/ddd"}
-	_ = Split(x, []byte("/"))        // call the writer version
-	_ = Split(x:reader, []byte("/")) // call the reader version
+	var y = Split(x, []byte("/"))        // call the writer version
+	                                     // y is a writer value.
+	var z = Split(x:reader, []byte("/")) // call the reader version
+	                                     // z is a reader value.
 
 	// Use Split function as values.
-	var fw = Split{r: writer} // I haven't got better syntax yet.
-	var fr = Split{r: reader}
-	_ = fr(x, []byte("/")) // <=> Split(x:reader, []byte("/"))
-	                       // x is converted to a reader value implicitly.
+	var fw = Split{q: writer} // I haven't got better syntax idea yet.
+	var fr = Split{q: reader}
+	_ = fr(x:reader, []byte("/"))
 }
 ```
 
 #### method sets
+
+We can delcare methods with recievers of reader types.
 
 The method set of reader type `T:reader` is always a subset of writer type `T`.
 This means when a method `M` is explicitly declared for reader type `T:reader`,
@@ -509,15 +515,22 @@ will be declared for writer type `T` by compilers.
 ```
 func (T:reader) M() {} // explicitly declared. (A reader method)
 /*
-func (t T) M() {t:reader.M()} // implicitly declared. (A writer method)
+func (t T) reader.M() {t:reader.M()} // implicitly declared. (A writer method)
+*/
+/*
+func T:reader.M(t T:reader) {t.M()} // an implicitly declared function.
 */
 
 var t T
-t.M()
-// <=>
 t:reader.M()
 // <=>
 T:reader.M(t:reader)
+```
+
+Note, to avoid [the problem mentioned in v9](README-v9.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers), the following method/function calls are invalid:
+```
+var t T
+t.M()
 // <=>
 T:reader.M(t)
 // <=>
@@ -539,13 +552,13 @@ An interface type can specify some read-only methods. For example:
 type I interface {
 	M0(Ta) Tb // a writer method
 
-	reader.M2(Tx) Ty // a reader method (also called receiver-read-only method).
+	reader.M2(Tx) Ty // a reader method.
 	                 // NOTE: this is an exported method.
 }
 ```
 
 Similar to non-interface type, if a reader interface type
-explicitly specified a read-only method `reader.M`,
+explicitly specified a reader method `reader.M`,
 it also implicitly specifies a writer method with the same name `M`.
 
 The method set specified by type `I` contains three methods, `M0`, `reader.M2` and `M2`.
@@ -581,7 +594,7 @@ then the reader type `T:reader` also implements the reader interface type `I:rea
   * The dynamic type of a writer interface value is a writer type.
   * The dynamic type of a reader interface value is a reader type.
 * Box
-  * No values can be boxed into constant interface values (except the initial bound values).
+  * No values can be boxed into final interface values (except the initial bound values).
   * reader values can't be boxed into writer interface values.
   * Values of any genres can be boxed into a reader interface value.
 * Assert
@@ -600,12 +613,12 @@ var x = []int{1, 2, 3}
 var y = [][]int{x, x}:reader
 var u interface{} = x        // ok
 u = y                        // error: can't assign a reader value to a writer value.
-var v interface{} = y        // ok. v is deduced as a reader interface value.
+var v interface{}:reader = y // ok. v is deduced as a reader interface value.
 var w = v.([][]int)          // ok. Like y, w is a reader value of type [][]int:reader.
 v = x                        // ok
 var s = v.([]int)            // ok, u is a reader value of type []int:reader.
 var t = v.([]int:reader)     // ok, equivalent to the above one.
-var t = u.([]int:reader)     // ok, Assert + convert.
+var q = u.([]int:reader)     // ok, Assert + convert.
 var r = u.([]int):reader     // ok, Assert then convert. Equivalent to the above one.
 ```
 
@@ -618,10 +631,10 @@ type T1 []int
 func (T1) M([]int:reader) []int
 
 type T2 []int
-func (T2) M([]int) []int:reader
+func (T2) M([]int) ([]int:reader)
 
 type T3 []int
-func (T3) M([]int:reader) []int:reader
+func (T3) M([]int:reader) ([]int:reader)
 
 type I interface {
 	M([]int) []int:reader
@@ -688,8 +701,8 @@ The other bit means whether or not the values referenced by the value can be mod
 
 ## Runtime implementation
 
-Except the next to be explained reflection section, the impact on runtime
-made by this proposal is not large.
+Except the changes mentioned in the above reflection section,
+the impact on runtime made by this proposal is not large.
 
 Each internal method value should maintain a `reader` property.
 This information is useful when boxing a reader value into an interface.
@@ -726,7 +739,7 @@ also makes a good summary of the benefits of read-only values.
 
 #### Rationales for the `T:reader` notation
 
-1. It is less discrete than `reader T`. I think `func (Ta:reader) Tx:reader` has a better readibility than `func (reader Ta)(reader Tx)`.
+1. It is less discrete than `reader T`. I think `func (Ta:reader) (Tx:reader)` has a better readibility than `func (reader Ta)(reader Tx)`.
 1. It conforms to Go type literal design philosophy: more importants shown firstly.
 1. It saves one keyword.
 
@@ -770,19 +783,19 @@ type Counter struct {
 }
 
 {
-	const c Counter
+	final c Counter
 	c.mu.Lock() // error: c.mu is read-only
 
 	var p = &c  // p is a reader pointer of type *Counter:reader
 	p.mu.Lock() // ok by the rule, but it makes c become a non-immutable value,
 	            // which may cause some confusions.
 	            // To avoid such cases happening, we can forbid taking addresses
-	            // of constants, but I feel this trade-off isn't worth it.
+	            // of finals, but I feel this trade-off isn't worth it.
 }
 ```
 
 To support partial read-only, the following rules need to be added:
-1. constants are always unaddressable.
+1. finals are always unaddressable.
 1. values of `struct{t T:writable}` can be converted/assignable to `struct{t T}`.
 1. function values
 	1. values of `func (struct{t T})` can be converted/assignable to `func (struct{t T:writable})`.
@@ -791,6 +804,8 @@ To support partial read-only, the following rules need to be added:
 
 Another simpler rule design is to forbid the conversions mentioned in the 2nd and 3rd rules.
 
-This means, the addressable constant feature and the partial read-only feature are mutually exclusive.
-
-
+This means, the addressable final feature and the partial read-only feature are mutually exclusive.
+I prefer keeping the addressable final feature.
+This feature will break less user code,
+for some user code may take the addresses of many error values declared in std packages.
+This feature will continue to make such code valid.

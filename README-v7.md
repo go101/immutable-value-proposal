@@ -1,16 +1,5 @@
 # A proposal to support read-only and immutable values in Go
 
-Old versions:
-* [the proposal thread](https://github.com/golang/go/issues/29422)
-* [the initial proposal](README-v0.md)
-* [the `var:N` version](README-v1.md)
-* [the pure-immutable-value interpretation version](README-v2.md)
-* [the immutable-type interpretation version](README-v3.md)
-* [the immutable-type/value interpretation version: const.fixed](README-v4.md)
-* [the immutable-type/value interpretation version: final.fixed. With interface design flaw](README-v5.md)
-* [the immutable-type/value interpretation version: final.fixed. Without partial read-only](README-v6.md)
-
-
 This proposal is not Go 1 compatible.
 Please read the last section of this proposal for incompatible cases.
 
@@ -220,7 +209,7 @@ The current design may be not perfect, so any improvemnt ideas are welcome.
 Some examples of the full value declaration form:
 ```golang
 // A true immutable value which can't be modified in any (safe) way.
-final FileNotExist = errors.New("file not exist").fixed  
+final FileNotExist = errors.New("file not exist").fixed
 
 // The following two declarations are equivalent.
 // Note, the elements of "a" are all true immutable values.
@@ -340,19 +329,19 @@ func foo() {
 	z := x[:1]   // z is var.fxied value (of type []T.fixed)
 	x = nil      // ok
 	y = T{}      // ok
-	
+
 	final w = x // w is a final.fixed value
 	u := w[:]   // w[:] is a final.fixed value, but
 	            // u is deduced as a var.fixed value.
-	
+
 	// v is a final.normal value.
 	final v = []T{{123, nil}, {789, new(int)}}
 	v = nil    // error: v is a final value
 	v[1] = T{} // ok
-	
+
 	_ = append(u, T{}) // error: can't append to fixed slices
 	_ = append(v, T{}) // ok
-	
+
 	...
 }
 ```
@@ -409,7 +398,7 @@ func bar(v map[string]T.fixed) { // v is a var.fixed value
 	*v["foo"].b = 789 // error: v["foo"].b is a fixed value
 	v["foo"] = T{}    // error: v["foo"] is a fixed map
 	v["baz"] = T{}    // error: v["foo"] is a fixed map
-	
+
 	// m will be deduced as a var.fixed value.
 	// That means as long as one element or one key is fixed
 	// in a map literal, then the map value is a fixed value.
@@ -421,7 +410,7 @@ func bar(v map[string]T.fixed) { // v is a var.fixed value
 	for a, b := range m {
 		// a and b are both var.fixed values.
 		// Their types are *int.fixed.
-		
+
 		*a = 123 // error: a is a fixed value
 		*b = 789 // error: b is a fixed value
 	}

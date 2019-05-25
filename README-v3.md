@@ -1,10 +1,5 @@
 # A Go immutable types/values proposal
 
-Old versions:
-* [the propsoal thread](https://github.com/golang/go/issues/29422).
-* [the `var:N` version](README-v1.md)
-* [the pure-immutable-value interpretation version](README-v2.md)
-
 This proposal introduces a notation `T.fixed` to represent the immutable version of type `T`,
 where `fixed` is new introduced keyword, which makes this proposal not Go 1 compatible.
 Please read the last section of this proposal for incompatible cases.
@@ -101,7 +96,7 @@ Those rules are much straightforward and anticipated.
 Please note, the immutability semantics in this proposal is different from the `const` semantics in C/C++.
 For example, a value declared as `var.fixed p ***int` in this proposal is
 like a variable decalared as `int const * const * const * p` in C/C++.
-In C/C++, we can declare a variable as `int * const * const * x`, 
+In C/C++, we can declare a variable as `int * const * const * x`,
 in this proposal, no ways to declare variables with the similar immutabilities.
 
 Another example, the following C code are valid.
@@ -182,7 +177,7 @@ Short value declaration examples:
 	newA, newB, oldC := (var.fixed)(va), vb, vc
 	newA, newB, oldC := (?.fixed)(va), vb, vc
 	newA, newB, oldC := va.(fixed), vb, vc // equivalent to the above two lines
-	
+
 	newX, newY, oldZ := (Tx.fixed)(va), (Ty)(vb), vc
 	newX, newY, oldZ := (Tx)(va).(fixed), (Ty)(vb), vc // equivalent to the above line
 }
@@ -381,7 +376,7 @@ The immutable version of a type may have a different method set from the type.
 The new keyword `fixed` is one cause why this proposal is not Go 1 compatible.
 Assume a source file imports a package as `T` and if there is a type named `fixed` in the imported package,
 although a smart compiler will not mistake the `fixed` in `T.fixed` as a keyword, the `T.fixed` really hurts code readibilty.
- 
+
 Using the old `const` keyword instead of the new `fixed` keyword can avoid these problems,
 however it would make people be confused with the current constant things.
 (Maybe, it is an acceptable solution.)
