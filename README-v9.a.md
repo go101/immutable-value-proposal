@@ -1,7 +1,7 @@
 # A proposal to support read-only and practical immutable values in Go
 
 Comparing to the v9.1 revison, this revision (v9.a)
-* removes the **final value** concept, thus this branch doesn't need the `final` keyword and becomes ([almost](#go-1-incompatible-cases)) Go 1 compatible.
+* removes the **final value** concept, thus this branch doesn't need the `final` keyword and becomes ([almost](#go-1-incompatible-cases-and-solutions)) Go 1 compatible.
 * removes the restriction that sending to and receiving from read-only channels are disallowed.
 
 Any criticisms and improvement ideas are welcome, for
