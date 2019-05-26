@@ -1,7 +1,7 @@
 # A proposal to support read-only and practical immutable values in Go
 
 Comparing to the v9.1 revison, this revision (v9.a)
-* removes the **final value** concept, thus this branch doesn't need the `final` keyword and becomes Go 1 compatible.
+* removes the **final value** concept, thus this branch doesn't need the `final` keyword and becomes ([almost](#go-1-incompatible-cases)) Go 1 compatible.
 * removes the restriction that sending to and receiving from read-only channels are disallowed.
 
 Any criticisms and improvement ideas are welcome, for
@@ -54,7 +54,7 @@ Please note,
 * A reader value, if it is not a read-only value, might be modifiable.
 * A writer value, if it is not a writable value, might not be modifiable.
 
-Also note, values of some some types never reference any values,
+Also note, values of some types never reference any values,
 or they are referencing some interval values which can't be modified in any ways in user code.
 Such types are called **no-references types** below.
 The **reader** and **writer** roles are non-sense for values of no-references types.
@@ -80,6 +80,8 @@ The following two rules stand if they stand without considering value roles.
 Values of no-references types have adaptive roles when they are used as R-values (right-hand-side values). In other words,
 * Values of no-references types are viewed as writer values when they are assigned to writer or writable values.
 * Values of no-references types are viewed as reader values when they are assigned to reader or read-only values.
+
+(Maybe it is good to call values of no-references types as unroled values.)
 
 #### new syntax set
 
@@ -429,6 +431,25 @@ This information is useful when boxing a reader value into an interface.
 
 As above has mentioned, the cap field of a reader byte slice should be set to `-1` if its byte elements are immutable.
 
+## Go 1 incompatible cases and solutions
+
+There are two Go 1 incompatible cases.
+
+#### reader arguments
+
+As above mentioned, when a writer or writable value is passed to a reader parameter,
+the writer or writable value must be explicitly converted to a reader or read-only value to act as a legal reader argument. This will break much user code which contains calls to functions in standard packages, such as `fmt.Print`, for the prototype of the `fmt.Print` function is expected to change to `func(...interface{}:rr)`.
+
+Solution 1: To avoid such incompatibilities, the prototype of the `fmt.Print` can be changed to `func(...interface{}::q)` instead.
+
+Solution 2: Use `go fix` to fix the calls in user code.
+
+#### reader/read-only package-level variables
+
+Many exported `error` values declared (with `var` now) in standard packages are expected to be changed as read-only values (declared with `var:ro` later). However, there might be some user code in whcih these `error` values are assigned to some variables. From the rules mentioned above, such assignments will become illegal later.
+
+Solution: Use `go fix` to fix these assignment in user code.
+
 ## Rationales
 
 #### Rationales of Go needs read-only and immutable values
@@ -493,16 +514,16 @@ Sometimes, people may need partial read-only for struct values.
 type Counter struct {
 	n  uint64
 
-      // mu will be always writable,
+	// mu will be always writable,
 	// even if its containing struct
-      // value is a read-only value.
+	// value is a read-only value.
 	mu sync.Mutex:writable
 }
 
 func (c *Counter:rr) Value() uint64 {
-      // ok. c.mu will be modified,
-      // which is allowed, even if
-      // *c is a read-only value.
+	// ok. c.mu will be modified,
+	// which is allowed, even if
+	// *c is a read-only value.
 	c.mu.Lock()
 	defer c.mu.Unlock() // ok
 
