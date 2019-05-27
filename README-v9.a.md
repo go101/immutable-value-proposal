@@ -444,11 +444,15 @@ Solution 1: To avoid such incompatibilities, the prototype of the `fmt.Print` ca
 
 Solution 2: Use `go fix` to fix the calls in user code.
 
+Solution 3: Publish v2 version of some standard modules.
+
 #### reader/read-only package-level variables
 
 Many exported `error` values declared (with `var` now) in standard packages are expected to be changed as read-only values (declared with `var:ro` later). However, there might be some user code in whcih these `error` values are assigned to some variables. From the rules mentioned above, such assignments will become illegal later.
 
-Solution: Use `go fix` to fix these assignment in user code.
+Solution 1: Use `go fix` to fix these assignment in user code.
+
+Solution 2: Publish v2 version of some standard modules.
 
 ## Rationales
 
