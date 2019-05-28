@@ -1,7 +1,7 @@
 # A proposal to support read-only and practical immutable values in Go
 
 _Comparing to the last revision v9, this version forbids passing writer values as reader arguments (including receiver arguments),
-to avoid [the problem mentioned in v9](README-v9.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers)._
+to avoid [the problem mentioned in v9](README-v9.0.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers)._
 
 This revision is a little Go 1 incompatible, for it needs a new keyword `final`.
 
@@ -527,7 +527,7 @@ t:reader.M()
 T:reader.M(t:reader)
 ```
 
-Note, to avoid [the problem mentioned in v9](README-v9.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers), the following method/function calls are invalid:
+Note, to avoid [the problem mentioned in v9](README-v9.0.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers), the following method/function calls are invalid:
 ```
 var t T
 t.M()

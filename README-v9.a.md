@@ -74,7 +74,7 @@ The following two rules stand if they stand without considering value roles.
   The conversion results can be assigned to reader values or bound to read-only values.
   (About why writer or writable values can't be implicitly
   converted to reader or read-only values, please read
-  [the problem mentioned in v9](README-v9.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers).)
+  [the problem mentioned in v9](README-v9.0.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers).)
 * Writer or writable values can be assigned to writer or writable values.
 
 Values of no-references types have adaptive roles when they are used as R-values (right-hand-side values). In other words,
