@@ -89,7 +89,7 @@ A notation form `:role` is introduced as value suffixes to indicate the roles of
 * We can use `var:ro` to delcare read-only variables.
   A declared read-only variable can be bound to an initial value.
 * We can use `var:rr` to declare reader variables.
-* We can use the form `v:ro` to explicitly convert writer or writable value `v` to a read-only value, and use `v:rr` to  explicitly convert writer or writable value `v` to a reader value.
+* We can ~~use the form `v:ro` to explicitly convert writer or writable value `v` to a read-only value, and~~ use `v:rr` to explicitly convert writer or writable value `v` to a reader value.
 
 For example,
 ```
@@ -112,25 +112,24 @@ var w = []int{1, 2, 3}
 // The elements are read-only from the view of z,
 // but they are writable from the view of w.
 // So the elements are not immutable values.
-var:rr z = w:ro
+var:rr z = w:rr
 z[0] = 9 // error
 w[0] = 9 // ok
 ```
 
-Please note, in the above example, the `:rr` and `:ro` suffixes in the `var:rr z = w:ro` line are both required.
+Please note, in the above example, the two `:rr` suffixes in the `var:rr z = w:rr` line are both required.
 The reason is `w` is a roled value. Literal and constant values are all unroled values.
+And again, implicit role convertions are disallowed here.
 
-Short declarations:
+There are not ways to declare read-only variables in short declarations:
 ```
 var w = []int{1, 2, 3}
 {
-	// u is a read-only value,
+	// u is a writer value.
 	// v is a reader value.
-	u, v := w:ro, w:rr
+	u, v := w, w:rr
 
 	... // use u and v
-
-	v = nil // ok
 }
 ```
 
@@ -175,6 +174,36 @@ to avoid declaring it as two functions
 ```
 func SplitReader(v []byte:rr, sep []byte:rr) ([][]byte:rr) {...}
 func SplitWriter(v []byte, sep []byte:rr) [][]byte {...}
+```
+
+An example containing some function declarations and calls:
+```
+func Double(x []byte) {
+	for i, v := range x {
+		x[i] = v+v
+	}
+}
+
+func DoubleDup(x []byte:rr) []byte {
+	y := make([]byte, len(x))
+	for i, v := range x {
+		y[i] = v+v
+	}
+	return y
+}
+
+var w = []byte{2, 3, 5}
+Double(w)
+fmt.Println(w) // [4 6 10]
+var v = DoubleDup(w:rr)
+fmt.Println(w) // [4 6 10]
+fmt.Println(v) // [8 12 20]
+
+// We can use strings as reader byte slices.
+// This makes the current append([]byte, string)
+// copy([]byte, string) become not syntax exceptions.
+v = DoubleDup("hello")
+fmt.Println(v) // [208 202 216 216 222]
 ```
 
 ## Detailed rules for values of all kinds of types
