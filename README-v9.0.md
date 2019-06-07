@@ -802,7 +802,7 @@ A reader parameter in a library package may be changed to a writer parameter in 
 For example:
 
 ```
-// v1.0.0
+// v1.9.1
 package apkg
 
 func F(s []byte:reader) {
@@ -813,7 +813,7 @@ func F(s []byte:reader) {
 and
 
 ```
-// v1.1.0
+// v2.0.0
 package apkg
 
 func F(s []byte) {

@@ -1,7 +1,7 @@
 # A proposal to support read-only and practical immutable values in Go
 
-Comparing to the v9.1 revison, this revision (v9.a)
-* removes the **final value** concept, thus this branch doesn't need the `final` keyword and becomes ([almost](#go-1-incompatible-cases-and-solutions)) Go 1 compatible.
+Comparing to the v9.1 revision, this revision (v9.a)
+* removes the **final value** concept, thus this revision doesn't need the `final` keyword and becomes ([almost](#go-1-incompatible-cases-and-solutions)) Go 1 compatible.
 * removes the restriction that sending to and receiving from read-only channels are disallowed.
 
 Any criticisms and improvement ideas are welcome, for
@@ -20,19 +20,21 @@ Some solutions for the drawbacks mentioned by Russ are also listed there.
 
 Basically, this proposal can be viewed as a combination
 of [issue#6386](https://github.com/golang/go/issues/6386)
-and [issue#22876](https://github.com/golang/go/issues/22876).
+and [issue#22876](https://github.com/golang/go/issues/22876),
+plus several new ideas and much more details.
+the new ideas and more details make this proposal more practical to implement.
 
 This proposal also has some similar ideas with
 [evaluation of read-only slices](https://docs.google.com/document/d/1-NzIYu0qnnsshMBpMPmuO21qd8unlimHgKjRD9qwp2A)
 written by Russ.
 
-However, this proposal has involved so much that
-it has become into a much more practical solution with
-more ideas and details than the just mentioned ones.
-
 This propsoal is not intended to be accepted, at least soon.
 It is more a documentation to show the problems and possible solutions
 in supporting immutable and read-only values in Go.
+I hope this proposal can help others get a good understanding on the problems
+and current solutions in supporting read-only values in Go,
+so that they can get inspired and improve the current read-only value proposals
+or make their own better read-only value proposals.
 
 ## The main points of this proposal
 
@@ -135,7 +137,7 @@ var w = []int{1, 2, 3}
 
 Although roles are properties of values, to make code (function prototype literals specificly) look compact, we can think of they are also properties of types.
 The notation `T:role` is introduced to represent a type `T` with a specified role.
-And to ease the syntax design, only `:rr` is allowed used as type suffixes.
+And to ease the syntax design, only `:rr` is allowed to be used as type suffixes.
 However, please note,
 * The notation `T:rr` is not allowed to appear in type declarations to declare reader types.
 * The notation `T:rr` can only be used to specify function parameter and result types.
@@ -200,7 +202,7 @@ fmt.Println(w) // [4 6 10]
 fmt.Println(v) // [8 12 20]
 
 // We can use strings as reader byte slices.
-// This makes the current append([]byte, string)
+// This makes the current append([]byte, string) and
 // copy([]byte, string) become not syntax exceptions.
 v = DoubleDup("hello")
 fmt.Println(v) // [208 202 216 216 222]
@@ -323,8 +325,10 @@ A `func()(T)` value is assignable to a `func()(T:rr)` value, not vice versa.
 
 A `func(T:rr)` value is assignable to a `func(T)` value, not vice versa.
 
-A declared `func(Tx::q) (Ty::q)` function can be used as values
-and be assigned to `func(Tx:rr) (Ty:rr)` or `func(Tx) Ty` values.
+A declared `func(Tx::q) (Ty::q)` function can be used as R-values
+and assigned to `func(Tx:rr) (Ty:rr)` or `func(Tx) Ty` values.
+But it can't be used as L-values, for it has not a certain type.
+(Yes, it is an untyped value.)
 
 #### method sets
 
