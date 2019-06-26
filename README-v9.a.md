@@ -67,9 +67,19 @@ Some no-references type examples:
 * array types with no-references element types
 * channel types with no-references element types
 
+Values of no-references types have adaptive roles when they are used as R-values (right-hand-side values). In other words,
+* Values of no-references types are viewed as writer values when they are assigned to writer or writable values.
+* Values of no-references types are viewed as reader values when they are assigned to reader or read-only values.
+
+We can think values of no-references types as **unroled values** when they are used as R-values.
+
+Literal and constant values are all unroled values.
+
+As a special, the predeclared `nil` is also an unroled value.
+
 #### assignment and conversion rules
 
-The following two rules stand if they stand without considering value roles.
+The following rules stand if they stand without considering value roles.
 * Reader or read-only values can be bound to read-only values. Read-only values can't be re-assigned to later.
 * Reader or read-only values can be assigned to reader values.
 * Writer or writable values can be **explicitly** converted to read-only values, not vice versa. (Here the **explicitly** means the `:role` suffix is required. See below for details.)
@@ -78,20 +88,15 @@ The following two rules stand if they stand without considering value roles.
   converted to reader or read-only values, please read
   [the problem mentioned in v9](README-v9.0.md#the-problem-when-reader-parameters-in-a-library-package-changed-to-writers).)
 * Writer or writable values can be assigned to writer or writable values.
-
-Values of no-references types have adaptive roles when they are used as R-values (right-hand-side values). In other words,
-* Values of no-references types are viewed as writer values when they are assigned to writer or writable values.
-* Values of no-references types are viewed as reader values when they are assigned to reader or read-only values.
-
-(Maybe it is good to call values of no-references types as unroled values.)
+* Unroled values can be assigned/bound to values with any roles.
 
 #### new syntax set
 
-A notation form `:role` is introduced as value suffixes to indicate the roles of some values, where `role` in the form can only be `rr` (reader) or `ro` (read only).
-* We can use `var:ro` to delcare read-only variables.
+A suffix notation form `:role` is introduced as value suffixes to indicate the roles of some values, where `role` in the form can only be `rr` (reader) or `ro` (read only).
+* We can use `var:ro` to delcare read-only variables. (`:ro` can be only used in `var:ro`.)
   A declared read-only variable can be bound to an initial value.
 * We can use `var:rr` to declare reader variables.
-* We can ~~use the form `v:ro` to explicitly convert writer or writable value `v` to a read-only value, and~~ use `v:rr` to explicitly convert writer or writable value `v` to a reader value.
+* We can use `v:rr` to explicitly convert writer or writable value `v` to a reader value.
 
 For example,
 ```
@@ -120,10 +125,11 @@ w[0] = 9 // ok
 ```
 
 Please note, in the above example, the two `:rr` suffixes in the `var:rr z = w:rr` line are both required.
-The reason is `w` is a roled value. Literal and constant values are all unroled values.
+The reason is `w` is a roled value.
+On the other hand, literal and constant values are all unroled values.
 And again, implicit role convertions are disallowed here.
 
-There are not ways to declare read-only variables in short declarations:
+There are no ways to declare read-only variables in short declarations:
 ```
 var w = []int{1, 2, 3}
 {
@@ -156,12 +162,12 @@ Although it is a non-sense, to avoid const-poisoning alike problems,
 the `:rr` sufix is allowed to follow no-references types.
 
 A detail related to the `T:rr` notation need to be noted:
-as long as one result of a function is specified with a read-only role,
+as long as one result of a function is specified with a reader role,
 then the result list part of the function prototype literal
 must be enclosed in a pair of `()`.
 For example, the notations `func() (T:rr)` and `func() T:rr` are different.
-The former denotes a result type with specified role,
-but the latter denotes a function type with specified role
+The former denotes a result type with the reader role,
+but the latter denotes a function type with the reader role
 (a non-sense role, for function types are no-references types).
 
 To avoid function declaration splitting problem, a **parameterized role** concept is introduced.
@@ -347,7 +353,7 @@ var t T
 t.Mx() // <=> t:rr.Mx()
 ```
 
-In the above code snippet, the method set of reader type `T:rr` contains one method: `rr.Mx`, however the method set of type `T` contains three method: `rr.Mx`, `Mx` and `My`.
+In the above code snippet, the method set of reader type `T:rr` contains one method: `rr.Mx`, however the method set of type `T` contains two method: `Mx` and `My`.
 
 For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly), the method set of type `T:rr` is a subset of type `*T:rr`.
 
@@ -368,16 +374,15 @@ An interface type can specify some read-only methods. For example:
 ```
 type I interface {
 	M0(Ta) Tb    // a writer method
-	rr.M2(Tx) Ty // a reader method.
-	             // NOTE: this is an exported method.
+	rr M2(Tx) Ty // a reader method (exported)
 }
 ```
 
-Similar to non-interface type, there is an implicit method `M2` specified for the writer version of the above shown interface type.
-The method set specified by type `I` contains three methods actually, `M0`, `M2` and `rr.M2`.
-The method set specified by type `I:rr` only contains one method, `rr.M2`.
+Similar to non-interface types, there is an implicit method `M2` specified for the writer version of the above shown interface type.
+The method set specified by type `I` contains two methods actually, `M0` and `M2`.
+The method set specified by type `I:rr` only contains one method, `M2`.
 
-In the following code snippet, the type `T1` implements the interface `I` shown in the above code snippet, but the type `T2` doesn't. The reason is type `T2` has not a `rr.M2` method.
+In the following code snippet, the type `T1` implements the interface `I` shown in the above code snippet, but the type `T2` doesn't. The reason is type `T2:rr` has not a `M2` method.
 ```
 type T1 struct{}
 func (T1) M0(Ta) Tb {var b Tb; return b}
@@ -404,13 +409,11 @@ Boxing and assertion rules:
   * A type assertion on a reader or read-only interface value results a read-only value.
   * A type assertion on a writer or writable interface value results a writer value.
 
-## reflection
+## Reflection
 
 Many function and method implementations in the `refect` package should be modified accordingly.
 The `refect.Value` type shoud have a **_reader_** property,
-and the result of an `Elem` method call should inherit the **reader** property
-from the receiver argument. More about reflection.
-For all details on reflection, please read the following reflection section.
+and the result of an `Elem` method call should inherit the **_reader_** property from the receiver argument.
 
 The current `reflect.Value.CanSet` method will report whether or not a value can be modified.
 
@@ -421,7 +424,7 @@ Its prototype is
 func ReaderValueOf(i interface{}:rr) Value
 ```
 For the standard Go compiler, in implementaion,
-one bit should be borrowed from the 23+ bits method number
+one bit can be borrowed from the 23+ bits method number
 to represent the `reader` proeprty.
 
 All parameters of type `reflect.Value` of the functions and methods
@@ -474,6 +477,7 @@ As above mentioned, when a writer or writable value is passed to a reader parame
 the writer or writable value must be explicitly converted to a reader or read-only value to act as a legal reader argument. This will break much user code which contains calls to functions in standard packages, such as `fmt.Print`, for the prototype of the `fmt.Print` function is expected to change to `func(...interface{}:rr)`.
 
 Solution 1: To avoid such incompatibilities, the prototype of the `fmt.Print` can be changed to `func(...interface{}::q)` instead.
+This solution can only apply to standard packages. (Similarly, should the unroled predeclared `nil` be declared with `var::q`?)
 
 Solution 2: Use `go fix` to fix the calls in user code.
 
@@ -483,13 +487,13 @@ Solution 3: Publish v2 version of some standard modules.
 
 Many exported `error` values declared (with `var` now) in standard packages are expected to be changed as read-only values (declared with `var:ro` later). However, there might be some user code in whcih these `error` values are assigned to some variables. From the rules mentioned above, such assignments will become illegal later.
 
-Solution 1: Use `go fix` to fix these assignment in user code.
+Solution 1: Use `go fix` to fix these assignments in user code.
 
 Solution 2: Publish v2 version of some standard modules.
 
 ## Rationales
 
-#### Rationales of Go needs read-only and immutable values
+#### rationales of Go needs read-only and immutable values
 
 In [evaluation of read-only slices](https://docs.google.com/document/d/1-NzIYu0qnnsshMBpMPmuO21qd8unlimHgKjRD9qwp2A),
 Russ mentions some inefficiencies caused by lacking of read-only values.
@@ -514,11 +518,11 @@ BCE (bounds check elimination) optimizations for them.
 The "Strengths of This Proposal" section in @jba's [propsoal](https://github.com/golang/go/issues/22876)
 also makes a good summary of the benefits of read-only values.
 
-#### Rationales for the `T:rr` notation
+#### rationales for the `T:rr` notation
 
 It is more compact than `var:rr T`. I think `func (Ta:rr) (Tx:rr)` has a better readibility than `func (var:rr Ta)(var:rr Tx)`.
 
-#### About the problems of read-only values mentioned by Russ
+#### about the problems of read-only values mentioned by Russ
 
 In [evaluation of read-only slices](https://docs.google.com/document/d/1-NzIYu0qnnsshMBpMPmuO21qd8unlimHgKjRD9qwp2A),
 Russ mentions some problems of read-only values.
@@ -573,3 +577,4 @@ Partial read-only will make this proposal much more complex, so I decided not to
 #### no-referenes types or no-references values
 
 The current proposal determines whether or not a value is referencing other values by checking whether or not its type is a no-references type. The checking happens at compile time. However, in fact, many run-time values can reference other values but at a certain time they are not referencing any values. Such values are called no-references values. In theory, it is not a problem to assign such no-references values with reader role to writer values. But this can't be determined at compile time, so an invalid such assignment must panic. For simplity, the current proposal adopts no-references types instead of no-reference values.
+
