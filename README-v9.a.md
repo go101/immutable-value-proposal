@@ -82,7 +82,7 @@ As a special, the predeclared `nil` is also an unroled value.
 The following rules stand if they stand without considering value roles.
 * Reader or read-only values can be bound to read-only values. Read-only values can't be re-assigned to later.
 * Reader or read-only values can be assigned to reader values.
-* Writer or writable values can be **explicitly** converted to read-only values, not vice versa. (Here the **explicitly** means the `:role` suffix is required. See below for details.)
+* Writer or writable values can be **explicitly** converted to read-only values, not vice versa. (Here the **explicitly** means the `:rr` suffix is required. See below for details.)
   The conversion results can be assigned to reader values or bound to read-only values.
   (About why writer or writable values can't be implicitly
   converted to reader or read-only values, please read
@@ -353,7 +353,7 @@ var t T
 t.Mx() // <=> t:rr.Mx()
 ```
 
-In the above code snippet, the method set of reader type `T:rr` contains one method: `rr.Mx`, however the method set of type `T` contains two method: `Mx` and `My`.
+In the above code snippet, the method set of reader type `T:rr` contains one method: `Mx`, however the method set of type `T` contains two method: `Mx` and `My`.
 
 For type `T` and `*T`, if methods can be declared for them (either explicitly or implicitly), the method set of type `T:rr` is a subset of type `*T:rr`.
 
