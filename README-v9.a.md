@@ -22,7 +22,7 @@ Basically, this proposal can be viewed as a combination
 of [issue#6386](https://github.com/golang/go/issues/6386)
 and [issue#22876](https://github.com/golang/go/issues/22876),
 plus several new ideas and much more details.
-the new ideas and more details make this proposal more practical to implement.
+the new ideas and more details make this proposal more practicable to implement.
 
 This proposal also has some similar ideas with
 [evaluation of read-only slices](https://docs.google.com/document/d/1-NzIYu0qnnsshMBpMPmuO21qd8unlimHgKjRD9qwp2A)
@@ -53,8 +53,13 @@ There are four kinds of value roles:
    so the values directly referenced by it are all writable values too (from the view of the writeable value).
 
 Please note,
-* A reader value, if it is not a read-only value, might be modifiable.
-* A writer value, if it is not a writable value, might not be modifiable.
+* A reader value (as a left-hand-side value), if it is not a read-only value, might be modifiable.
+* A writer value (as a left-hand-side value), if it is not a writable value, might not be modifiable.
+  (However, non-writable writer values, such as function pointer results,
+  will never be used as left-hand-side values in the current version of this proposal.)
+* When a value is used as a right-hand-side values (R-values),
+  the reader and read-only roles are indistinguishable for it.
+  The same is for the writer and writable roles.
 
 Also note, values of some types never reference any values,
 or they are referencing some interval values which can't be modified in any ways in user code.
@@ -67,7 +72,7 @@ Some no-references type examples:
 * array types with no-references element types
 * channel types with no-references element types
 
-Values of no-references types have adaptive roles when they are used as R-values (right-hand-side values). In other words,
+Values of no-references types have adaptive roles when they are used as R-values. In other words,
 * Values of no-references types are viewed as writer values when they are assigned to writer or writable values.
 * Values of no-references types are viewed as reader values when they are assigned to reader or read-only values.
 
